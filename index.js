@@ -1,11 +1,12 @@
 require("dotenv").config();
 const express = require("express");
-const { 
-    Client, 
+const {
+    Client,
     GatewayIntentBits,
     ButtonBuilder,
     ButtonStyle,
     ActionRowBuilder,
+    EmbedBuilder,
     Events
 } = require("discord.js");
 
@@ -34,20 +35,58 @@ client.once("ready", async ()=>{
 
 
     const boton = new ButtonBuilder()
-        .setCustomId("verificar")
-        .setLabel("✅ Verificar")
-        .setStyle(ButtonStyle.Success);
+    .setCustomId("verificar")
+    .setLabel("Verificar cuenta")
+    .setEmoji("🛡️")
+    .setStyle(ButtonStyle.Success);
 
+const fila = new ActionRowBuilder()
+    .addComponents(boton);
 
-    const fila = new ActionRowBuilder()
-        .addComponents(boton);
+const embed = new EmbedBuilder()
+    .setColor("#FFD400")
+    .setAuthor({
+        name: "Sistema de Verificación",
+        iconURL: "https://cdn.discordapp.com/attachments/1515744948039848068/1527377287773818900/3F26C02F-83C3-42B2-84B0-D5A68C4CFD5F.png"
+    })
+    .setTitle("🛡️ Verificación del servidor")
+    .setThumbnail("https://cdn.discordapp.com/attachments/1515744948039848068/1527377287773818900/3F26C02F-83C3-42B2-84B0-D5A68C4CFD5F.png")
+    .setDescription(
+`# 👋 ¡Bienvenido!
 
+Gracias por unirte a nuestro servidor.
 
-    await canal.send({
-        content:"Pulsa el botón para verificarte:",
-        components:[fila]
-    });
+## ¿Cómo verificarse?
 
+🔸 Pulsa el botón **Verificar cuenta**.
+
+🔸 Autoriza tu cuenta mediante el sistema oficial de Discord.
+
+🔸 Recibirás automáticamente el rol de **Verificado**.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+## ¿Qué obtendrás?
+
+✅ Acceso completo al servidor.
+
+✅ Acceso a todos los canales.
+
+✅ Protección frente a cuentas falsas y spam.
+
+> **Nunca te pediremos tu contraseña.**
+> La autenticación se realiza mediante el sistema oficial de Discord OAuth2.
+`)
+    .setImage("https://cdn.discordapp.com/attachments/1515744948039848068/1527377287773818900/3F26C02F-83C3-42B2-84B0-D5A68C4CFD5F.png")
+    .setFooter({
+        text: "Discord Verify Bot • Verificación segura"
+    })
+    .setTimestamp();
+
+await canal.send({
+    embeds: [embed],
+    components: [fila]
+});
 
     console.log("✅ Botón enviado");
 
