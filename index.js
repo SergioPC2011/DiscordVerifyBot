@@ -61,17 +61,22 @@ client.on(Events.InteractionCreate, async interaction=>{
     if(!interaction.isButton()) return;
 
 
-    if(interaction.customId === "verificar"){
+   if(interaction.customId === "verificar"){
 
-        const url =
-        `https://discord.com/oauth2/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}&scope=identify%20guilds.join`;
+    await interaction.deferReply({
+        flags: 64
+    });
 
+    const url =
+    `https://discord.com/oauth2/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}&scope=identify%20guilds.join`;
 
-        await interaction.reply({
-            content:`Pulsa aquí para verificar:\n${url}`,
-            flags: 64
-        });
+    await interaction.editReply({
+        content:`Pulsa aquí para verificar:\n${url}`
+    });
 
+}{
+
+        
     }
 
 });
@@ -79,6 +84,9 @@ client.on(Events.InteractionCreate, async interaction=>{
 
 // Iniciar bot
 const app = express();
+app.get("/", (req, res) => {
+    res.send("✅ Discord Verify Bot funcionando");
+}); 
 
  app.get("/callback", async (req,res)=>{
 
