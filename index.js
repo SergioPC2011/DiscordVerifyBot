@@ -184,10 +184,68 @@ app.get("/", (req, res) => {
     console.log("✅ Rol asignado correctamente");
 
 
-    return res.send(
-        "✅ Verificación completada. Ya tienes tu rol."
-    );
+    return res.send(`
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Verificación completada</title>
 
+<style>
+body{
+    margin:0;
+    background:#0f172a;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    font-family:Arial,sans-serif;
+}
+
+.card{
+    background:#1e293b;
+    padding:40px;
+    border-radius:20px;
+    width:420px;
+    text-align:center;
+    color:white;
+    box-shadow:0 0 30px rgba(0,0,0,.4);
+}
+
+.check{
+    font-size:70px;
+}
+
+h1{
+    margin-top:15px;
+    margin-bottom:10px;
+}
+
+p{
+    color:#cbd5e1;
+    font-size:18px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<div class="check">✅</div>
+
+<h1>¡Verificación completada!</h1>
+
+<p>Tu cuenta ha sido verificada correctamente.</p>
+
+<p>Ya puedes volver a Discord y disfrutar del servidor.</p>
+
+</div>
+
+</body>
+</html>
+`);
 
 } catch(error) {
 
