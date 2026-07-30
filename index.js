@@ -184,47 +184,143 @@ app.get("/", (req, res) => {
     console.log("✅ Rol asignado correctamente");
 
 
-    return res.send(`
+ return res.send(`
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Verificación completada</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificación del servidor</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
 <style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
 body{
-    margin:0;
-    background:#0f172a;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    font-family:Arial,sans-serif;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background:linear-gradient(135deg,#111,#1b1b1b);
+overflow:hidden;
+}
+
+body::before{
+content:"";
+position:absolute;
+width:500px;
+height:500px;
+background:#FFD400;
+filter:blur(180px);
+opacity:.18;
+top:-150px;
+right:-150px;
 }
 
 .card{
-    background:#1e293b;
-    padding:40px;
-    border-radius:20px;
-    width:420px;
-    text-align:center;
-    color:white;
-    box-shadow:0 0 30px rgba(0,0,0,.4);
+
+position:relative;
+z-index:2;
+
+width:480px;
+
+background:#181818;
+
+border:2px solid #FFD400;
+
+border-radius:22px;
+
+padding:45px;
+
+text-align:center;
+
+box-shadow:0 0 40px rgba(255,212,0,.25);
+
 }
 
-.check{
-    font-size:70px;
+.logo{
+
+width:120px;
+
+height:120px;
+
+border-radius:50%;
+
+margin-bottom:25px;
+
+border:4px solid #FFD400;
+
+box-shadow:0 0 25px rgba(255,212,0,.35);
+
 }
 
 h1{
-    margin-top:15px;
-    margin-bottom:10px;
+
+color:#FFD400;
+
+font-size:34px;
+
+margin-bottom:18px;
+
+font-weight:700;
+
 }
 
 p{
-    color:#cbd5e1;
-    font-size:18px;
+
+color:#DDD;
+
+font-size:17px;
+
+line-height:1.7;
+
+margin-bottom:14px;
+
 }
+
+.box{
+
+margin-top:30px;
+
+padding:18px;
+
+background:#222;
+
+border-radius:12px;
+
+border-left:5px solid #FFD400;
+
+color:#EEE;
+
+font-size:15px;
+
+}
+
+.ok{
+
+font-size:70px;
+
+margin-top:30px;
+
+}
+
+.footer{
+
+margin-top:30px;
+
+font-size:13px;
+
+color:#888;
+
+}
+
 </style>
 
 </head>
@@ -233,13 +329,37 @@ p{
 
 <div class="card">
 
-<div class="check">✅</div>
+<img
+class="logo"
+src="https://cdn.discordapp.com/attachments/1515744948039848068/1527377287773818900/3F26C02F-83C3-42B2-84B0-D5A68C4CFD5F.png?ex=6a6ce572&is=6a6b93f2&hm=dcf57b54ed5b7db7762a770795e190be1425c748e440df59b64f366f387ec3fb&">
 
-<h1>¡Verificación completada!</h1>
+<h1>Verificación del servidor</h1>
 
-<p>Tu cuenta ha sido verificada correctamente.</p>
+<p>
+Para acceder al servidor debes autorizar tu cuenta de Discord.
+</p>
 
-<p>Ya puedes volver a Discord y disfrutar del servidor.</p>
+<p>
+No solicitaremos tu contraseña; la autenticación se realiza mediante el sistema oficial de Discord.
+</p>
+
+<div class="ok">✅</div>
+
+<div class="box">
+
+<strong>Verificación completada correctamente.</strong>
+
+<br><br>
+
+Ya puedes volver a Discord y disfrutar del servidor.
+
+</div>
+
+<div class="footer">
+
+Discord Verify Bot © 2026
+
+</div>
 
 </div>
 
