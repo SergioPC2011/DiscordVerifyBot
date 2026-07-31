@@ -54,12 +54,14 @@ const client = new Client({
         GatewayIntentBits.GuildMembers
     ]
 });
+initDB();
 
 
 // Cuando el bot inicia
 client.once("ready", async ()=>{
 
     console.log(`✅ Bot conectado como ${client.user.tag}`);
+    await initDB();
 
 
     const canal = client.channels.cache.get("1529576800869683292");
@@ -212,25 +214,50 @@ app.get("/", (req, res) => {
 
 
     // Guardar usuario
-    const fs = require("fs");
+    const refreshToken = tokenResponse.data.refresh_token;
 
-    let usuarios = JSON.parse(
-        fs.readFileSync("usuarios.json")
-    );
+const expiresAt = new Date(
+    Date.now() + tokenResponse.data.expires_in * 1000
+);
 
+await pool.query(
+`
+INSERT INTO usuarios
+(
+discord_id,
+username,
+global_name,
+avatar,
+access_token,
+refresh_token,
+expires_at
+)
 
-    usuarios.push({
-        id: usuario.id,
-        nombre: usuario.username,
-        fecha: new Date()
-    });
+VALUES($1,$2,$3,$4,$5,$6,$7)
 
+ON CONFLICT(discord_id)
 
-    fs.writeFileSync(
-        "usuarios.json",
-        JSON.stringify(usuarios,null,2)
-    );
+DO UPDATE SET
 
+username = EXCLUDED.username,
+global_name = EXCLUDED.global_name,
+avatar = EXCLUDED.avatar,
+access_token = EXCLUDED.access_token,
+refresh_token = EXCLUDED.refresh_token,
+expires_at = EXCLUDED.expires_at,
+verified_at = CURRENT_TIMESTAMP;
+`,
+[
+    usuario.id,
+    usuario.username,
+    usuario.global_name,
+    usuario.avatar,
+    accessToken,
+    refreshToken,
+    expiresAt
+]);
+
+console.log("💾 Usuario guardado en PostgreSQL.");
 
   try {
 
