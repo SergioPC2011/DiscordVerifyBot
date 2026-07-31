@@ -165,7 +165,31 @@ const app = express();
 app.get("/", (req, res) => {
     res.send("✅ Discord Verify Bot funcionando");
 }); 
+app.get("/enviar", async (req, res) => {
 
+    try {
+
+        const canalID = req.query.canal;
+        const mensaje = req.query.mensaje;
+
+        const canal = await client.channels.fetch(canalID);
+
+        if (!canal) {
+            return res.send("Canal no encontrado");
+        }
+
+        await canal.send(mensaje);
+
+        res.send("✅ Mensaje enviado");
+
+    } catch (err) {
+
+        console.error(err);
+        res.send("❌ Error");
+
+    }
+
+});
  app.get("/callback", async (req,res)=>{
 
     const code = req.query.code;
