@@ -9,6 +9,43 @@ const {
     EmbedBuilder,
     Events
 } = require("discord.js");
+const { Pool } = require("pg");
+
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes("localhost")
+        ? false
+        : { rejectUnauthorized: false }
+});
+
+async function initDB() {
+
+    const query = `
+        CREATE TABLE IF NOT EXISTS usuarios (
+            discord_id TEXT PRIMARY KEY,
+            username TEXT NOT NULL,
+            global_name TEXT,
+            avatar TEXT,
+            access_token TEXT NOT NULL,
+            refresh_token TEXT NOT NULL,
+            expires_at TIMESTAMP,
+            verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `;
+
+    try {
+
+        await pool.query(query);
+
+        console.log("💾 Tabla usuarios lista.");
+
+    } catch(err) {
+
+        console.error("❌ Error PostgreSQL:", err);
+
+    }
+
+}
 
 
 const client = new Client({
