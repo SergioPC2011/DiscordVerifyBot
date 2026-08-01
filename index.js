@@ -162,9 +162,18 @@ client.on(Events.InteractionCreate, async interaction=>{
 
 // Iniciar bot
 const app = express();
+const path = require("path");
+
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/modules", express.static(path.join(__dirname, "views/modules")));
 app.get("/", (req, res) => {
     res.send("✅ Discord Verify Bot funcionando");
 }); 
+app.get("/panel", (req, res) => {
+
+    res.sendFile(path.join(__dirname, "views", "dashboard.html"));
+
+});
 app.get("/enviar", async (req, res) => {
 
     try {
