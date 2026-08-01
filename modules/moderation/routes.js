@@ -1,5 +1,6 @@
 const kick = require("./kick");
 const ban = require("./ban");
+const timeout = require("./timeout");
 const { EmbedBuilder } = require("discord.js");
 
 module.exports = (app, client) => {

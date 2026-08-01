@@ -50,7 +50,10 @@ document
 
     `;
 
+    // ===========================
     // KICK
+    // ===========================
+
     document.getElementById("kick").addEventListener("click", async () => {
 
         const motivo = prompt("Motivo del Kick");
@@ -87,7 +90,10 @@ document
 
     });
 
+    // ===========================
     // BAN
+    // ===========================
+
     document.getElementById("ban").addEventListener("click", async () => {
 
         const motivo = prompt("Motivo del Ban");
@@ -119,6 +125,52 @@ document
         } else {
 
             alert("❌ No se pudo banear.");
+
+        }
+
+    });
+
+    // ===========================
+    // TIMEOUT
+    // ===========================
+
+    document.getElementById("timeout").addEventListener("click", async () => {
+
+        const minutos = prompt("¿Cuántos minutos?");
+
+        if (!minutos) return;
+
+        const motivo = prompt("Motivo del Timeout");
+
+        const respuesta = await fetch("/api/moderation/timeout", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+
+                id: window.usuarioSeleccionado.id,
+
+                tiempo: Number(minutos) * 60 * 1000,
+
+                motivo
+
+            })
+
+        });
+
+        const r = await respuesta.json();
+
+        if (r.ok) {
+
+            alert("✅ Timeout aplicado.");
+
+        } else {
+
+            alert("❌ No se pudo aplicar el Timeout.");
 
         }
 
