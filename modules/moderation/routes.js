@@ -1,8 +1,10 @@
 const kick = require("./kick");
+const ban = require("./ban");
 const { EmbedBuilder } = require("discord.js");
 
 module.exports = (app, client) => {
 
+    // Buscar usuario
     app.get("/api/moderation/user/:id", async (req, res) => {
 
         try {
@@ -25,7 +27,6 @@ module.exports = (app, client) => {
                 avatar: miembro.user.displayAvatarURL({
 
                     extension: "png",
-
                     size: 512
 
                 }),
@@ -43,16 +44,14 @@ module.exports = (app, client) => {
             console.error(err);
 
             res.json({
-
                 ok: false
-
             });
 
         }
 
     });
 
-    // 👇 PEGA ESTO DEBAJO
+    // Kick
     app.post("/api/moderation/kick", async (req, res) => {
 
         try {
@@ -60,15 +59,40 @@ module.exports = (app, client) => {
             const { id, motivo } = req.body;
 
             await kick(
-
                 client,
-
                 "1515037603219509309",
-
                 id,
-
                 motivo || "Kick desde el panel"
+            );
 
+            res.json({
+                ok: true
+            });
+
+        } catch (err) {
+
+            console.error(err);
+
+            res.json({
+                ok: false
+            });
+
+        }
+
+    });
+
+    // Ban
+    app.post("/api/moderation/ban", async (req, res) => {
+
+        try {
+
+            const { id, motivo } = req.body;
+
+            await ban(
+                client,
+                "1515037603219509309",
+                id,
+                motivo || "Ban desde el panel"
             );
 
             res.json({
@@ -88,3 +112,4 @@ module.exports = (app, client) => {
     });
 
 };
+        

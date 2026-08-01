@@ -39,24 +39,19 @@ document
         <p><b>Roles</b></p>
 
         <ul>
-
             ${datos.roles.map(r => `<li>${r}</li>`).join("")}
-
         </ul>
 
         <br>
 
         <button id="kick">🦶 Kick</button>
-
         <button id="ban">🔨 Ban</button>
-
         <button id="timeout">⏳ Timeout</button>
 
     `;
 
-    document
-    .getElementById("kick")
-    .addEventListener("click", async () => {
+    // KICK
+    document.getElementById("kick").addEventListener("click", async () => {
 
         const motivo = prompt("Motivo del Kick");
 
@@ -87,6 +82,43 @@ document
         } else {
 
             alert("❌ No se pudo expulsar.");
+
+        }
+
+    });
+
+    // BAN
+    document.getElementById("ban").addEventListener("click", async () => {
+
+        const motivo = prompt("Motivo del Ban");
+
+        const respuesta = await fetch("/api/moderation/ban", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+
+                id: window.usuarioSeleccionado.id,
+
+                motivo
+
+            })
+
+        });
+
+        const r = await respuesta.json();
+
+        if (r.ok) {
+
+            alert("✅ Usuario baneado.");
+
+        } else {
+
+            alert("❌ No se pudo banear.");
 
         }
 
