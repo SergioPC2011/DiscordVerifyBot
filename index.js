@@ -230,6 +230,37 @@ app.get("/panel", (req, res) => {
 
 });
 app.get("/api/stats", async (req, res) => {
+    app.get("/api/roles", async (req, res) => {
+
+    try {
+
+        const servidor = client.guilds.cache.get("1515037603219509309");
+
+        if (!servidor)
+            return res.json([]);
+
+        const roles = servidor.roles.cache
+            .sort((a, b) => b.position - a.position)
+            .map(role => ({
+
+                id: role.id,
+                nombre: role.name,
+                color: role.hexColor,
+                miembros: role.members.size
+
+            }));
+
+        res.json(roles);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.json([]);
+
+    }
+
+});
 app.get("/api/users", async (req, res) => {
 
     try {
