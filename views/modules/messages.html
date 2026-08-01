@@ -1,3 +1,33 @@
 <h1>💬 Mensajes</h1>
 
-<p>Desde aquí podrás enviar mensajes al servidor.</p>
+<p>Envía un mensaje directamente desde el panel.</p>
+
+<br>
+
+<label>Canal</label>
+
+<select id="canal">
+    <option>Cargando canales...</option>
+</select>
+
+<br><br>
+
+<label>Mensaje</label>
+
+<textarea
+id="mensaje"
+rows="8"
+style="width:100%;resize:none;"
+placeholder="Escribe aquí el mensaje..."></textarea>
+
+<br><br>
+
+<button id="enviarMensaje">
+    📨 Enviar mensaje
+</button>
+
+<br><br>
+
+<div id="resultado"></div>
+
+<script src="/js/modules/messages.js"></script>

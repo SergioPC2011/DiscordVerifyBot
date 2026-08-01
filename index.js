@@ -165,10 +165,39 @@ const app = express();
 const path = require("path");
 
 app.use(express.static(path.join(__dirname, "public")));
+
 app.use("/modules", express.static(path.join(__dirname, "views/modules")));
+
 app.get("/", (req, res) => {
     res.send("✅ Discord Verify Bot funcionando");
 }); 
+app.get("/api/channels", async (req, res) => {
+
+    try {
+
+        const servidor = client.guilds.cache.get("1515037603219509309");
+
+        if (!servidor) {
+            return res.json([]);
+        }
+
+        const canales = servidor.channels.cache
+            .filter(c => c.isTextBased())
+            .map(c => ({
+                id: c.id,
+                nombre: c.name
+            }));
+
+        res.json(canales);
+
+    } catch (err) {
+
+        console.error(err);
+        res.json([]);
+
+    }
+
+});
 app.get("/panel", (req, res) => {
 
     res.sendFile(path.join(__dirname, "views", "dashboard.html"));
