@@ -230,7 +230,31 @@ app.get("/panel", (req, res) => {
 
 });
 app.get("/api/stats", async (req, res) => {
+app.get("/api/users", async (req, res) => {
 
+    try {
+
+        const usuarios = await pool.query(`
+            SELECT
+                discord_id,
+                username,
+                avatar,
+                verified_at
+            FROM usuarios
+            ORDER BY verified_at DESC
+        `);
+
+        res.json(usuarios.rows);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.json([]);
+
+    }
+
+});
     try {
 
         const usuarios = await pool.query(
