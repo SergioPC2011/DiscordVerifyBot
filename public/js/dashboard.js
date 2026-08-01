@@ -1,32 +1,50 @@
 document.addEventListener("DOMContentLoaded", () => {
 
     const botones = document.querySelectorAll(".menu-item");
-
     const contenido = document.getElementById("contenido");
 
-    botones.forEach(boton => {
+    async function cargarModulo(modulo){
 
-        boton.addEventListener("click", async () => {
+        try{
 
-            const modulo = boton.dataset.module;
+            const respuesta = await fetch(`/modules/${modulo}.html`);
+            const html = await respuesta.text();
 
-            try {
+            contenido.innerHTML = html;
 
-                const respuesta = await fetch(`/modules/${modulo}.html`);
+            // Eliminar script anterior
+            const anterior = document.getElementById("modulo-script");
+            if(anterior) anterior.remove();
 
-                const html = await respuesta.text();
+            // Cargar JS del módulo
+            const script = document.createElement("script");
+            script.src = `/js/modules/${modulo}.js?v=` + Date.now();
+            script.id = "modulo-script";
 
-                contenido.innerHTML = html;
+            document.body.appendChild(script);
 
-            } catch {
+        }catch(err){
 
-                contenido.innerHTML =
-                "<h2>Error al cargar el módulo.</h2>";
+            console.error(err);
 
-            }
+            contenido.innerHTML =
+            "<h2>Error al cargar el módulo.</h2>";
+
+        }
+
+    }
+
+    botones.forEach(boton=>{
+
+        boton.addEventListener("click",()=>{
+
+            cargarModulo(boton.dataset.module);
 
         });
 
     });
+
+    // Cargar Dashboard al abrir el panel
+    cargarModulo("dashboard");
 
 });
