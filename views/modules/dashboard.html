@@ -1,3 +1,33 @@
-<h1>🏠 Dashboard</h1>
+<h1>📊 Dashboard</h1>
 
-<p>Panel principal funcionando correctamente.</p>
+<div class="stats">
+
+    <div class="card">
+        <h2 id="usuarios">0</h2>
+        <p>Usuarios</p>
+    </div>
+
+    <div class="card">
+        <h2 id="tickets">0</h2>
+        <p>Tickets</p>
+    </div>
+
+    <div class="card">
+        <h2 id="abiertos">0</h2>
+        <p>Abiertos</p>
+    </div>
+
+    <div class="card">
+        <h2 id="cerrados">0</h2>
+        <p>Cerrados</p>
+    </div>
+
+</div>
+
+<br><br>
+
+<canvas id="graficaTickets" height="120"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="/js/modules/dashboard.js"></script>

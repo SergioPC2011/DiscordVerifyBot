@@ -36,6 +36,27 @@ async function initDB() {
     try {
 
         await pool.query(query);
+        await pool.query(`
+CREATE TABLE IF NOT EXISTS tickets (
+
+    id SERIAL PRIMARY KEY,
+
+    channel_id TEXT UNIQUE,
+
+    user_id TEXT,
+
+    username TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    closed_at TIMESTAMP,
+
+    status TEXT DEFAULT 'open'
+
+);
+`);
+
+console.log("💾 Tabla tickets lista.");
 
         console.log("💾 Tabla usuarios lista.");
 
@@ -61,6 +82,11 @@ initDB();
 client.once("ready", async ()=>{
 
     console.log(`✅ Bot conectado como ${client.user.tag}`);
+    const ticketPanel = require("./modules/tickets/panel");
+
+await ticketPanel(client);
+require("./modules/tickets/createTicket")(client);
+require("./modules/tickets/closeTicket")(client);
     await initDB();
 
 
@@ -201,6 +227,52 @@ app.get("/api/channels", async (req, res) => {
 app.get("/panel", (req, res) => {
 
     res.sendFile(path.join(__dirname, "views", "dashboard.html"));
+
+});
+app.get("/api/stats", async (req, res) => {
+
+    try {
+
+        const usuarios = await pool.query(
+            "SELECT COUNT(*) FROM usuarios"
+        );
+
+        const tickets = await pool.query(
+            "SELECT COUNT(*) FROM tickets"
+        );
+
+        const ticketsAbiertos = await pool.query(
+            "SELECT COUNT(*) FROM tickets WHERE status='open'"
+        );
+
+        const ticketsCerrados = await pool.query(
+            "SELECT COUNT(*) FROM tickets WHERE status='closed'"
+        );
+
+        res.json({
+
+            usuarios: usuarios.rows[0].count,
+
+            tickets: tickets.rows[0].count,
+
+            abiertos: ticketsAbiertos.rows[0].count,
+
+            cerrados: ticketsCerrados.rows[0].count
+
+        });
+
+    } catch(err){
+
+        console.error(err);
+
+        res.json({
+            usuarios:0,
+            tickets:0,
+            abiertos:0,
+            cerrados:0
+        });
+
+    }
 
 });
 app.get("/enviar", async (req, res) => {
