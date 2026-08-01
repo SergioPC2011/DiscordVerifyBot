@@ -87,6 +87,7 @@ client.once("ready", async ()=>{
 await ticketPanel(client);
 require("./modules/tickets/createTicket")(client);
 require("./modules/tickets/closeTicket")(client);
+require("./modules/moderation/routes")(app, client);
     await initDB();
 
 
