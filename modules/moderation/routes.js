@@ -111,6 +111,46 @@ module.exports = (app, client) => {
         }
 
     });
+    // Timeout
+app.post("/api/moderation/timeout", async (req, res) => {
 
+    try {
+
+        const { id, motivo, tiempo } = req.body;
+
+        await timeout(
+
+            client,
+
+            "1515037603219509309",
+
+            id,
+
+            tiempo,
+
+            motivo
+
+        );
+
+        res.json({
+
+            ok: true
+
+        });
+
+    } catch (err) {
+
+    console.error("❌ Error Timeout:", err);
+
+    res.status(500).json({
+
+        ok: false,
+        error: err.message
+
+    });
+
+}
+
+});
 };
         

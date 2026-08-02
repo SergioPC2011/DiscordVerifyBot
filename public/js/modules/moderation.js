@@ -170,7 +170,7 @@ document
 
         } else {
 
-            alert("❌ No se pudo aplicar el Timeout.");
+            alert("❌ Error: " + (r.error || "Desconocido"));
 
         }
 
