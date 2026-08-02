@@ -8,7 +8,10 @@ const { EmbedBuilder } = require("discord.js");
 
 module.exports = (app, client) => {
 
-    // Buscar usuario
+    // ===========================
+    // BUSCAR USUARIO
+    // ===========================
+
     app.get("/api/moderation/user/:id", async (req, res) => {
 
         try {
@@ -48,14 +51,19 @@ module.exports = (app, client) => {
             console.error(err);
 
             res.json({
+
                 ok: false
+
             });
 
         }
 
     });
 
-    // Kick
+    // ===========================
+    // KICK
+    // ===========================
+
     app.post("/api/moderation/kick", async (req, res) => {
 
         try {
@@ -63,14 +71,21 @@ module.exports = (app, client) => {
             const { id, motivo } = req.body;
 
             await kick(
+
                 client,
+
                 "1515037603219509309",
+
                 id,
+
                 motivo || "Kick desde el panel"
+
             );
 
             res.json({
+
                 ok: true
+
             });
 
         } catch (err) {
@@ -78,14 +93,19 @@ module.exports = (app, client) => {
             console.error(err);
 
             res.json({
+
                 ok: false
+
             });
 
         }
 
     });
 
-    // Ban
+    // ===========================
+    // BAN
+    // ===========================
+
     app.post("/api/moderation/ban", async (req, res) => {
 
         try {
@@ -93,14 +113,21 @@ module.exports = (app, client) => {
             const { id, motivo } = req.body;
 
             await ban(
+
                 client,
+
                 "1515037603219509309",
+
                 id,
+
                 motivo || "Ban desde el panel"
+
             );
 
             res.json({
+
                 ok: true
+
             });
 
         } catch (err) {
@@ -108,109 +135,170 @@ module.exports = (app, client) => {
             console.error(err);
 
             res.json({
+
                 ok: false
+
             });
 
         }
 
     });
-    // Timeout
-app.post("/api/moderation/timeout", async (req, res) => {
 
-    try {
+    // ===========================
+    // TIMEOUT
+    // ===========================
 
-        const { id, motivo, tiempo } = req.body;
+    app.post("/api/moderation/timeout", async (req, res) => {
 
-        await timeout(
+        try {
 
-            client,
+            const { id, motivo, tiempo } = req.body;
 
-            "1515037603219509309",
+            await timeout(
 
-            id,
+                client,
 
-            tiempo,
+                "1515037603219509309",
 
-            motivo
+                id,
 
-        );
+                tiempo,
 
-        res.json({
+                motivo
 
-            ok: true
+            );
 
-        });
+            res.json({
 
-    } catch (err) {
+                ok: true
 
-    console.error("❌ Error Timeout:", err);
+            });
 
-    res.status(500).json({
+        } catch (err) {
 
-        ok: false,
-        error: err.message
+            console.error("❌ Error Timeout:", err);
+
+            res.status(500).json({
+
+                ok: false,
+                error: err.message
+
+            });
+
+        }
 
     });
 
-}
+    // ===========================
+    // REMOVE TIMEOUT
+    // ===========================
 
-});
-// Remove Timeout
-app.post("/api/moderation/removetimeout", async (req, res) => {
+    app.post("/api/moderation/removetimeout", async (req, res) => {
 
-    try {
+        try {
 
-        const { id } = req.body;
+            const { id } = req.body;
 
-        await removeTimeout(
+            await removeTimeout(
 
-            client,
+                client,
 
-            "1515037603219509309",
+                "1515037603219509309",
 
-            id
+                id
 
-        );
+            );
 
-        res.json({
-            ok: true
-        });
+            res.json({
 
-    } catch (err) {
+                ok: true
 
-        console.error("❌ Error Remove Timeout:", err);
+            });
 
-        res.status(500).json({
-            ok: false,
-            error: err.message
-        });
+        } catch (err) {
 
-    }
+            console.error("❌ Error Remove Timeout:", err);
 
-});
-// Obtener canales
-app.get("/api/moderation/channels", async (req, res) => {
+            res.status(500).json({
 
-    try {
+                ok: false,
+                error: err.message
 
-        const lista = await channels(
+            });
 
-            client,
+        }
 
-            "1515037603219509309"
+    });
 
-        );
+    // ===========================
+    // OBTENER CANALES
+    // ===========================
 
-        res.json(lista);
+    app.get("/api/moderation/channels", async (req, res) => {
 
-    } catch (err) {
+        try {
 
-        console.error(err);
+            const lista = await channels(
 
-        res.json([]);
+                client,
 
-    }
+                "1515037603219509309"
 
-});
+            );
+
+            res.json(lista);
+
+        } catch (err) {
+
+            console.error(err);
+
+            res.json([]);
+
+        }
+
+    });
+
+    // ===========================
+    // PURGE
+    // ===========================
+
+    app.post("/api/moderation/purge", async (req, res) => {
+
+        try {
+
+            const { channelId, cantidad } = req.body;
+
+            await purge(
+
+                client,
+
+                "1515037603219509309",
+
+                channelId,
+
+                cantidad
+
+            );
+
+            res.json({
+
+                ok: true
+
+            });
+
+        } catch (err) {
+
+            console.error("❌ Error Purge:", err);
+
+            res.status(500).json({
+
+                ok: false,
+                error: err.message
+
+            });
+
+        }
+
+    });
+
 };
-        

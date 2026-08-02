@@ -248,3 +248,56 @@ document
     });
 
 });
+// ===========================
+// PURGE
+// ===========================
+
+document.getElementById("purgeBtn").addEventListener("click", async () => {
+
+    const channelId = document.getElementById("canalPurge").value;
+
+    const cantidad = document.getElementById("cantidadPurge").value;
+
+    if (!channelId || !cantidad) {
+
+        alert("Selecciona un canal y una cantidad.");
+
+        return;
+
+    }
+
+    const confirmar = confirm(`¿Seguro que quieres borrar ${cantidad} mensajes?`);
+
+    if (!confirmar) return;
+
+    const respuesta = await fetch("/api/moderation/purge", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+            channelId,
+
+            cantidad
+
+        })
+
+    });
+
+    const r = await respuesta.json();
+
+    if (r.ok) {
+
+        alert("✅ Mensajes eliminados.");
+
+    } else {
+
+        alert("❌ Error: " + (r.error || "Desconocido"));
+
+    }
+
+});
