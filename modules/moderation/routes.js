@@ -1,7 +1,9 @@
 const kick = require("./kick");
 const ban = require("./ban");
 const timeout = require("./timeout");
+const purge = require("./purge");
 const removeTimeout = require("./removetimeout");
+const channels = require("./channels");
 const { EmbedBuilder } = require("discord.js");
 
 module.exports = (app, client) => {
@@ -182,6 +184,30 @@ app.post("/api/moderation/removetimeout", async (req, res) => {
             ok: false,
             error: err.message
         });
+
+    }
+
+});
+// Obtener canales
+app.get("/api/moderation/channels", async (req, res) => {
+
+    try {
+
+        const lista = await channels(
+
+            client,
+
+            "1515037603219509309"
+
+        );
+
+        res.json(lista);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.json([]);
 
     }
 

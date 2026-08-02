@@ -1,8 +1,10 @@
 <h1>🛡 Moderación</h1>
 
-<p>Gestiona usuarios del servidor.</p>
+<p>Gestiona usuarios y herramientas de moderación.</p>
 
-<br>
+<hr>
+
+<h2>👤 Buscar usuario</h2>
 
 <input
 id="buscarUsuario"
@@ -16,5 +18,36 @@ placeholder="ID del usuario">
 <br><br>
 
 <div id="usuarioInfo"></div>
+
+<hr>
+
+<h2>🧹 Limpiar mensajes</h2>
+
+<label>Canal</label>
+
+<br>
+
+<select id="canalPurge" style="width:300px;padding:8px;">
+    <option>Cargando canales...</option>
+</select>
+
+<br><br>
+
+<label>Cantidad de mensajes</label>
+
+<br>
+
+<input
+id="cantidadPurge"
+type="number"
+min="1"
+max="100"
+value="50">
+
+<br><br>
+
+<button id="purgeBtn">
+🧹 Limpiar mensajes
+</button>
 
 <script src="/js/modules/moderation.js"></script>

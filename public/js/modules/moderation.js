@@ -1,3 +1,37 @@
+// ===========================
+// CARGAR CANALES
+// ===========================
+
+async function cargarCanales() {
+
+    const respuesta = await fetch("/api/moderation/channels");
+
+    const canales = await respuesta.json();
+
+    const select = document.getElementById("canalPurge");
+
+    if (!select) return;
+
+    select.innerHTML = "";
+
+    canales.forEach(canal => {
+
+        select.innerHTML += `
+            <option value="${canal.id}">
+                #${canal.nombre}
+            </option>
+        `;
+
+    });
+
+}
+
+cargarCanales();
+
+// ===========================
+// BUSCAR USUARIO
+// ===========================
+
 document
 .getElementById("buscarBtn")
 .addEventListener("click", async () => {
@@ -47,7 +81,7 @@ document
         <button id="kick">🦶 Kick</button>
         <button id="ban">🔨 Ban</button>
         <button id="timeout">⏳ Timeout</button>
-<button id="removetimeout">🔓 Quitar Timeout</button>
+        <button id="removetimeout">🔓 Quitar Timeout</button>
 
     `;
 
@@ -176,37 +210,41 @@ document
         }
 
     });
+
+    // ===========================
     // REMOVE TIMEOUT
-document.getElementById("removetimeout").addEventListener("click", async () => {
+    // ===========================
 
-    const respuesta = await fetch("/api/moderation/removetimeout", {
+    document.getElementById("removetimeout").addEventListener("click", async () => {
 
-        method: "POST",
+        const respuesta = await fetch("/api/moderation/removetimeout", {
 
-        headers: {
-            "Content-Type": "application/json"
-        },
+            method: "POST",
 
-        body: JSON.stringify({
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-            id: window.usuarioSeleccionado.id
+            body: JSON.stringify({
 
-        })
+                id: window.usuarioSeleccionado.id
+
+            })
+
+        });
+
+        const r = await respuesta.json();
+
+        if (r.ok) {
+
+            alert("✅ Timeout eliminado.");
+
+        } else {
+
+            alert("❌ Error: " + (r.error || "Desconocido"));
+
+        }
 
     });
-
-    const r = await respuesta.json();
-
-    if (r.ok) {
-
-        alert("✅ Timeout eliminado.");
-
-    } else {
-
-        alert("❌ Error: " + (r.error || "Desconocido"));
-
-    }
-
-});
 
 });
