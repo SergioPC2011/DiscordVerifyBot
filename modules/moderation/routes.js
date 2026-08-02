@@ -1,6 +1,7 @@
 const kick = require("./kick");
 const ban = require("./ban");
 const timeout = require("./timeout");
+const removeTimeout = require("./removetimeout");
 const { EmbedBuilder } = require("discord.js");
 
 module.exports = (app, client) => {
@@ -150,6 +151,39 @@ app.post("/api/moderation/timeout", async (req, res) => {
     });
 
 }
+
+});
+// Remove Timeout
+app.post("/api/moderation/removetimeout", async (req, res) => {
+
+    try {
+
+        const { id } = req.body;
+
+        await removeTimeout(
+
+            client,
+
+            "1515037603219509309",
+
+            id
+
+        );
+
+        res.json({
+            ok: true
+        });
+
+    } catch (err) {
+
+        console.error("❌ Error Remove Timeout:", err);
+
+        res.status(500).json({
+            ok: false,
+            error: err.message
+        });
+
+    }
 
 });
 };

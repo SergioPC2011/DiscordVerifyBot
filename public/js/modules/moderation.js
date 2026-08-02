@@ -47,6 +47,7 @@ document
         <button id="kick">🦶 Kick</button>
         <button id="ban">🔨 Ban</button>
         <button id="timeout">⏳ Timeout</button>
+<button id="removetimeout">🔓 Quitar Timeout</button>
 
     `;
 
@@ -175,5 +176,37 @@ document
         }
 
     });
+    // REMOVE TIMEOUT
+document.getElementById("removetimeout").addEventListener("click", async () => {
+
+    const respuesta = await fetch("/api/moderation/removetimeout", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+            id: window.usuarioSeleccionado.id
+
+        })
+
+    });
+
+    const r = await respuesta.json();
+
+    if (r.ok) {
+
+        alert("✅ Timeout eliminado.");
+
+    } else {
+
+        alert("❌ Error: " + (r.error || "Desconocido"));
+
+    }
+
+});
 
 });
