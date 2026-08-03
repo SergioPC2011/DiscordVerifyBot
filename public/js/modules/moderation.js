@@ -79,10 +79,11 @@ document
         <br>
 
         <button id="kick">🦶 Kick</button>
-        <button id="ban">🔨 Ban</button>
-        <button id="timeout">⏳ Timeout</button>
-        <button id="removetimeout">🔓 Quitar Timeout</button>
-
+<button id="ban">🔨 Ban</button>
+<button id="timeout">⏳ Timeout</button>
+<button id="removetimeout">🔓 Quitar Timeout</button>
+<button id="nickname">✏️ Cambiar apodo</button>
+<button id="unban">♻️ Desbanear</button>
     `;
 
     // ===========================
@@ -300,4 +301,84 @@ document.getElementById("purgeBtn").addEventListener("click", async () => {
 
     }
 
+    // ===========================
+// CAMBIAR APODO
+// ===========================
+
+document.getElementById("nickname").addEventListener("click", async () => {
+
+    const nuevoApodo = prompt("Nuevo apodo");
+
+    if (nuevoApodo === null) return;
+
+    const respuesta = await fetch("/api/moderation/nickname", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+            id: window.usuarioSeleccionado.id,
+
+            nickname: nuevoApodo
+
+        })
+
+    });
+
+    const r = await respuesta.json();
+
+    if (r.ok) {
+
+        alert("✅ Apodo cambiado.");
+
+    } else {
+
+        alert("❌ Error: " + (r.error || "Desconocido"));
+
+    }
+
+});
+// ===========================
+// UNBAN
+// ===========================
+
+document.getElementById("unban").addEventListener("click", async () => {
+
+    const confirmar = confirm("¿Seguro que quieres desbanear a este usuario?");
+
+    if (!confirmar) return;
+
+    const respuesta = await fetch("/api/moderation/unban", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+            id: window.usuarioSeleccionado.id
+
+        })
+
+    });
+
+    const r = await respuesta.json();
+
+    if (r.ok) {
+
+        alert("✅ Usuario desbaneado.");
+
+    } else {
+
+        alert("❌ Error: " + (r.error || "Desconocido"));
+
+    }
+
+});
 });

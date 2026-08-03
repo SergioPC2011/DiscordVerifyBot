@@ -4,6 +4,8 @@ const timeout = require("./timeout");
 const purge = require("./purge");
 const removeTimeout = require("./removetimeout");
 const channels = require("./channels");
+const nickname = require("./nickname");
+const unban = require("./unban");
 const { EmbedBuilder } = require("discord.js");
 
 module.exports = (app, client) => {
@@ -300,5 +302,86 @@ module.exports = (app, client) => {
         }
 
     });
+// ===========================
+// CAMBIAR APODO
+// ===========================
 
+app.post("/api/moderation/nickname", async (req, res) => {
+
+    try {
+
+        const { id, nickname: nuevoApodo } = req.body;
+
+        await nickname(
+
+            client,
+
+            "1515037603219509309",
+
+            id,
+
+            nuevoApodo
+
+        );
+
+        res.json({
+
+            ok: true
+
+        });
+
+    } catch (err) {
+
+        console.error("❌ Error Nickname:", err);
+
+        res.status(500).json({
+
+            ok: false,
+            error: err.message
+
+        });
+
+    }
+
+});
+// ===========================
+// UNBAN
+// ===========================
+
+app.post("/api/moderation/unban", async (req, res) => {
+
+    try {
+
+        const { id } = req.body;
+
+        await unban(
+
+            client,
+
+            "1515037603219509309",
+
+            id
+
+        );
+
+        res.json({
+
+            ok: true
+
+        });
+
+    } catch (err) {
+
+        console.error("❌ Error Unban:", err);
+
+        res.status(500).json({
+
+            ok: false,
+            error: err.message
+
+        });
+
+    }
+
+});
 };
