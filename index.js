@@ -49,7 +49,7 @@ const verificationServers = {
 // =====================================================
 
 // Tiempo entre usuarios
-const MASS_JOIN_DELAY_MS = 500;
+const MASS_JOIN_DELAY_MS = 1500;
 
 
 // Estados temporales OAuth
@@ -744,232 +744,6 @@ async function addUserToGuild(
 
     }
 
-} {
-
-    let accessToken =
-
-        
-
-
-    async function request() {
-await getValidAccessToken(user);
-        return axios.put(
-
-            `https://discord.com/api/v10/guilds/${guildId}/members/${user.discord_id}`,
-
-            {
-
-                access_token:
-                    accessToken
-
-            },
-
-            {
-
-                headers: {
-
-                    Authorization:
-                        `Bot ${process.env.TOKEN}`,
-
-                    "Content-Type":
-                        "application/json"
-
-                },
-
-                validateStatus:
-                    () => true
-
-            }
-
-        );
-
-    }
-
-
-    try {
-
-        let response =
-            await request();
-
-
-        // Usuario añadido
-        if (
-            response.status === 201
-        ) {
-
-            return {
-
-                ok: true,
-
-                already: false
-
-            };
-
-        }
-
-
-        // Usuario ya estaba
-        if (
-            response.status === 204
-        ) {
-
-            return {
-
-                ok: true,
-
-                already: true
-
-            };
-
-        }
-
-
-        // Token caducado
-        if (
-            response.status === 401
-        ) {
-
-            console.log(
-                `🔄 Renovando token de ${user.username}...`
-            );
-
-
-            accessToken =
-                await refreshUserToken(user);
-
-
-            response =
-                await request();
-
-
-            if (
-                response.status === 201
-            ) {
-
-                return {
-
-                    ok: true,
-
-                    already: false
-
-                };
-
-            }
-
-
-            if (
-                response.status === 204
-            ) {
-
-                return {
-
-                    ok: true,
-
-                    already: true
-
-                };
-
-            }
-
-        }
-
-
-        // Rate limit
-        if (
-            response.status === 429
-        ) {
-
-            const retryAfter =
-
-                Number(
-                    response.data?.retry_after ||
-                    1
-                );
-
-
-            console.log(
-
-                `⏳ Rate limit. Esperando ${retryAfter}s...`
-
-            );
-
-
-            await sleep(
-
-                Math.ceil(
-                    retryAfter * 1000
-                )
-
-            );
-
-
-            response =
-                await request();
-
-
-            if (
-                response.status === 201
-            ) {
-
-                return {
-
-                    ok: true,
-
-                    already: false
-
-                };
-
-            }
-
-
-            if (
-                response.status === 204
-            ) {
-
-                return {
-
-                    ok: true,
-
-                    already: true
-
-                };
-
-            }
-
-        }
-
-
-        return {
-
-            ok: false,
-
-            reason:
-
-                response.data?.message ||
-
-                `Discord HTTP ${response.status}`
-
-        };
-
-
-    } catch (error) {
-
-        return {
-
-            ok: false,
-
-            reason:
-
-                error.response?.data?.message ||
-
-                error.message ||
-
-                "Error desconocido"
-
-        };
-
-    }
-
 }
 
 
@@ -999,10 +773,13 @@ async function registerMassJoinCommand() {
 
 
     for (
+
         const guildId
+
         of Object.keys(
             verificationServers
         )
+
     ) {
 
         try {
@@ -1825,7 +1602,6 @@ client.on(
                 // =================================================
 
                 const me =
-
                     guild.members.me ||
 
                     await guild.members.fetchMe();
@@ -2715,6 +2491,7 @@ app.get(
                 error
 
             );
+
 
             res.send(
 
