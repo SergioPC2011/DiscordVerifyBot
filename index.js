@@ -51,7 +51,7 @@ const MASS_JOIN_GUILD_ID =
 
 
 // Tiempo entre usuarios
-const MASS_JOIN_DELAY_MS = 500;
+const MASS_JOIN_DELAY_MS = 1500;
 
 
 // Estados temporales OAuth
@@ -350,228 +350,142 @@ async function addUserToGuild(
     guildId
 ) {
 
-    let accessToken =
-
-        await getValidAccessToken(user);
-
-
-    async function request() {
-
-        return axios.put(
-
-            `https://discord.com/api/v10/guilds/${guildId}/members/${user.discord_id}`,
-
-            {
-
-                access_token:
-                    accessToken
-
-            },
-
-            {
-
-                headers: {
-
-                    Authorization:
-                        `Bot ${process.env.TOKEN}`,
-
-                    "Content-Type":
-                        "application/json"
-
-                },
-
-                validateStatus:
-                    () => true
-
-            }
-
-        );
-
-    }
-
-
     try {
 
-        let response =
-            await request();
+        let accessToken =
+            await getValidAccessToken(user);
 
+        const url =
+            `https://discord.com/api/v10/guilds/${guildId}/members/${user.discord_id}`;
 
-        // Usuario añadido
-        if (
-            response.status === 201
-        ) {
+        for (let intento = 1; intento <= 3; intento++) {
 
-            return {
+            let response;
 
-                ok: true,
+            try {
 
-                already: false
-
-            };
-
-        }
-
-
-        // Usuario ya estaba
-        if (
-            response.status === 204
-        ) {
-
-            return {
-
-                ok: true,
-
-                already: true
-
-            };
-
-        }
-
-
-        // Token caducado
-        if (
-            response.status === 401
-        ) {
-
-            console.log(
-                `🔄 Renovando token de ${user.username}...`
-            );
-
-
-            accessToken =
-                await refreshUserToken(user);
-
-
-            response =
-                await request();
-
-
-            if (
-                response.status === 201
-            ) {
-
-                return {
-
-                    ok: true,
-
-                    already: false
-
-                };
-
-            }
-
-
-            if (
-                response.status === 204
-            ) {
-
-                return {
-
-                    ok: true,
-
-                    already: true
-
-                };
-
-            }
-
-        }
-
-
-        // Rate limit
-        if (
-            response.status === 429
-        ) {
-
-            const retryAfter =
-
-                Number(
-                    response.data?.retry_after ||
-                    1
+                response = await axios.put(
+                    url,
+                    {
+                        access_token: accessToken
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bot ${process.env.TOKEN}`,
+                            "Content-Type": "application/json"
+                        },
+                        timeout: 15000,
+                        validateStatus: () => true
+                    }
                 );
 
+            } catch (error) {
 
-            console.log(
+                if (
+                    error.code === "ECONNABORTED" ||
+                    error.code === "ETIMEDOUT"
+                ) {
 
-                `⏳ Rate limit. Esperando ${retryAfter}s...`
+                    console.log(
+                        `⏱️ Timeout añadiendo ${user.username} (intento ${intento}/3)`
+                    );
 
-            );
-
-
-            await sleep(
-
-                Math.ceil(
-                    retryAfter * 1000
-                )
-
-            );
-
-
-            response =
-                await request();
-
-
-            if (
-                response.status === 201
-            ) {
+                    if (intento < 3) {
+                        await sleep(2000);
+                        continue;
+                    }
+                }
 
                 return {
-
-                    ok: true,
-
-                    already: false
-
+                    ok: false,
+                    reason: error.message || "Error de conexión"
                 };
-
             }
 
+            if (response.status === 201) {
+                console.log(`✅ ${user.username} añadido correctamente`);
+                return { ok: true, already: false };
+            }
 
-            if (
-                response.status === 204
-            ) {
+            if (response.status === 204) {
+                console.log(`👤 ${user.username} ya estaba en el servidor`);
+                return { ok: true, already: true };
+            }
 
+            if (response.status === 401) {
+                console.log(`🔄 Token caducado para ${user.username}. Renovando...`);
+
+                try {
+                    accessToken = await refreshUserToken(user);
+                    continue;
+                } catch (error) {
+                    console.error(
+                        `❌ No se pudo renovar el token de ${user.username}:`,
+                        error.message
+                    );
+                    return {
+                        ok: false,
+                        reason: "Token OAuth caducado y no se pudo renovar"
+                    };
+                }
+            }
+
+            if (response.status === 429) {
+
+                const retryAfter = Number(
+                    response.data?.retry_after ||
+                    response.headers?.["retry-after"] ||
+                    2
+                );
+
+                console.log(
+                    `⏳ Rate limit para ${user.username}. Esperando ${retryAfter} segundos...`
+                );
+
+                await sleep(Math.ceil(retryAfter * 1000));
+                continue;
+            }
+
+            if (response.status === 403) {
+                console.error(
+                    `❌ 403 al añadir ${user.username}:`,
+                    response.data
+                );
                 return {
-
-                    ok: true,
-
-                    already: true
-
+                    ok: false,
+                    reason: "403: El bot no tiene permisos suficientes o Discord rechazó la incorporación."
                 };
-
             }
 
+            if (response.status === 404) {
+                return {
+                    ok: false,
+                    reason: "404: Servidor, usuario o aplicación no encontrada."
+                };
+            }
+
+            return {
+                ok: false,
+                reason: response.data?.message || `Discord HTTP ${response.status}`
+            };
         }
 
-
         return {
-
             ok: false,
-
-            reason:
-
-                response.data?.message ||
-
-                `Discord HTTP ${response.status}`
-
+            reason: "Se agotaron los 3 intentos."
         };
-
 
     } catch (error) {
 
+        console.error(
+            `❌ Error procesando ${user.username}:`,
+            error
+        );
+
         return {
-
             ok: false,
-
-            reason:
-
-                error.response?.data?.message ||
-
-                error.message ||
-
-                "Error desconocido"
-
+            reason: error.response?.data?.message || error.message || "Error desconocido"
         };
-
     }
 
 }
@@ -1772,10 +1686,7 @@ client.on(
 
     }
 
-);
-
-
-// =====================================================
+);// =====================================================
 // LIMPIAR STATES
 // =====================================================
 
