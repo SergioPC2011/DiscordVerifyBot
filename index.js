@@ -348,6 +348,404 @@ async function addUserToGuild(
     guildId
 ) {
 
+    try {
+
+        let accessToken =
+            await getValidAccessToken(user);
+
+        const url =
+            `https://discord.com/api/v10/guilds/${guildId}/members/${user.discord_id}`;
+
+
+        for (
+            let intento = 1;
+            intento <= 3;
+            intento++
+        ) {
+
+            let response;
+
+
+            // =================================================
+            // PETICIÓN A DISCORD
+            // =================================================
+
+            try {
+
+                response = await axios.put(
+
+                    url,
+
+                    {
+                        access_token:
+                            accessToken
+                    },
+
+                    {
+
+                        headers: {
+
+                            Authorization:
+                                `Bot ${process.env.TOKEN}`,
+
+                            "Content-Type":
+                                "application/json"
+
+                        },
+
+                        // MUY IMPORTANTE
+                        // Evita que se quede bloqueado
+                        // indefinidamente.
+
+                        timeout: 15000,
+
+                        validateStatus:
+                            () => true
+
+                    }
+
+                );
+
+
+            } catch (error) {
+
+
+                // =================================================
+                // TIMEOUT
+                // =================================================
+
+                if (
+
+                    error.code ===
+                    "ECONNABORTED" ||
+
+                    error.code ===
+                    "ETIMEDOUT"
+
+                ) {
+
+                    console.log(
+
+                        `⏱️ Timeout añadiendo ${user.username} - intento ${intento}/3`
+
+                    );
+
+
+                    if (
+
+                        intento < 3
+
+                    ) {
+
+                        await sleep(
+                            2000
+                        );
+
+                        continue;
+
+                    }
+
+
+                    return {
+
+                        ok: false,
+
+                        reason:
+                            "Timeout después de 3 intentos"
+
+                    };
+
+                }
+
+
+                return {
+
+                    ok: false,
+
+                    reason:
+                        error.message ||
+                        "Error de conexión"
+
+                };
+
+            }
+
+
+            // =================================================
+            // 201 = AÑADIDO
+            // =================================================
+
+            if (
+
+                response.status ===
+                201
+
+            ) {
+
+                console.log(
+
+                    `✅ ${user.username} añadido correctamente`
+
+                );
+
+
+                return {
+
+                    ok: true,
+
+                    already: false
+
+                };
+
+            }
+
+
+            // =================================================
+            // 204 = YA ESTABA
+            // =================================================
+
+            if (
+
+                response.status ===
+                204
+
+            ) {
+
+                console.log(
+
+                    `👤 ${user.username} ya estaba en el servidor`
+
+                );
+
+
+                return {
+
+                    ok: true,
+
+                    already: true
+
+                };
+
+            }
+
+
+            // =================================================
+            // 401 = TOKEN CADUCADO
+            // =================================================
+
+            if (
+
+                response.status ===
+                401
+
+            ) {
+
+                console.log(
+
+                    `🔄 Token caducado para ${user.username}. Renovando...`
+
+                );
+
+
+                try {
+
+                    accessToken =
+
+                        await refreshUserToken(
+                            user
+                        );
+
+
+                    continue;
+
+
+                } catch (error) {
+
+                    console.error(
+
+                        `❌ No se pudo renovar el token de ${user.username}:`,
+
+                        error.message
+
+                    );
+
+
+                    return {
+
+                        ok: false,
+
+                        reason:
+                            "Token OAuth caducado y no se pudo renovar"
+
+                    };
+
+                }
+
+            }
+
+
+            // =================================================
+            // 429 = RATE LIMIT
+            // =================================================
+
+            if (
+
+                response.status ===
+                429
+
+            ) {
+
+                const retryAfter =
+
+                    Number(
+
+                        response.data?.retry_after ||
+
+                        response.headers?.[
+                            "retry-after"
+                        ] ||
+
+                        2
+
+                    );
+
+
+                console.log(
+
+                    `⏳ Rate limit para ${user.username}. Esperando ${retryAfter} segundos...`
+
+                );
+
+
+                await sleep(
+
+                    Math.ceil(
+
+                        retryAfter * 1000
+
+                    )
+
+                );
+
+
+                continue;
+
+            }
+
+
+            // =================================================
+            // 403 = SIN PERMISOS
+            // =================================================
+
+            if (
+
+                response.status ===
+                403
+
+            ) {
+
+                console.error(
+
+                    `❌ 403 al añadir ${user.username}:`,
+
+                    response.data
+
+                );
+
+
+                return {
+
+                    ok: false,
+
+                    reason:
+                        "403: Discord ha rechazado la incorporación o el bot no tiene los permisos necesarios."
+
+                };
+
+            }
+
+
+            // =================================================
+            // 404
+            // =================================================
+
+            if (
+
+                response.status ===
+                404
+
+            ) {
+
+                return {
+
+                    ok: false,
+
+                    reason:
+                        "404: Servidor, usuario o aplicación no encontrada."
+
+                };
+
+            }
+
+
+            // =================================================
+            // OTROS ERRORES
+            // =================================================
+
+            return {
+
+                ok: false,
+
+                reason:
+
+                    response.data?.message ||
+
+                    `Discord HTTP ${response.status}`
+
+            };
+
+        }
+
+
+        return {
+
+            ok: false,
+
+            reason:
+                "Se agotaron los 3 intentos."
+
+        };
+
+
+    } catch (error) {
+
+        console.error(
+
+            `❌ Error procesando ${user.username}:`,
+
+            error
+
+        );
+
+
+        return {
+
+            ok: false,
+
+            reason:
+
+                error.response?.data?.message ||
+
+                error.message ||
+
+                "Error desconocido"
+
+        };
+
+    }
+
+} {
+
     let accessToken =
 
         await getValidAccessToken(user);
