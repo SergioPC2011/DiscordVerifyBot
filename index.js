@@ -748,11 +748,11 @@ async function addUserToGuild(
 
     let accessToken =
 
-        await getValidAccessToken(user);
+        
 
 
     async function request() {
-
+await getValidAccessToken(user);
         return axios.put(
 
             `https://discord.com/api/v10/guilds/${guildId}/members/${user.discord_id}`,
