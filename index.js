@@ -55,6 +55,148 @@ const MASS_JOIN_DELAY_MS = 1500;
 // Estados temporales OAuth
 const oauthStates = new Map();
 
+// =====================================================
+// KEYS DE LA WEB
+// =====================================================
+
+const webKeySessions = new Map();
+const adminKeySessions = new Map();
+const WEB_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+
+function generateWebKey() {
+    return `DV-${crypto.randomBytes(18).toString("hex").toUpperCase()}`;
+}
+
+function parseCookies(req) {
+    const header = req.headers.cookie || "";
+    const cookies = {};
+
+    for (const part of header.split(";")) {
+        const index = part.indexOf("=");
+        if (index === -1) continue;
+
+        const name = part.slice(0, index).trim();
+        const value = part.slice(index + 1).trim();
+        cookies[name] = decodeURIComponent(value);
+    }
+
+    return cookies;
+}
+
+function setSessionCookie(res, name, value, maxAge) {
+    const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+
+    res.setHeader(
+        "Set-Cookie",
+        `${name}=${encodeURIComponent(value)}; Max-Age=${Math.floor(maxAge / 1000)}; Path=/; HttpOnly; SameSite=Lax${secure}`
+    );
+}
+
+function clearSessionCookie(res, name) {
+    res.setHeader(
+        "Set-Cookie",
+        `${name}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`
+    );
+}
+
+function createSession(store, data, ttl) {
+    const token = crypto.randomBytes(32).toString("hex");
+
+    store.set(token, {
+        ...data,
+        expiresAt: Date.now() + ttl
+    });
+
+    return token;
+}
+
+function getValidSession(store, token) {
+
+    if (!token) {
+        return null;
+    }
+
+    const session = store.get(token);
+
+    if (!session) {
+        return null;
+    }
+
+    if (session.expiresAt <= Date.now()) {
+
+        store.delete(token);
+
+        return null;
+    }
+
+    return session;
+}
+
+function requireWebKey(req, res, next) {
+
+    const cookies =
+        parseCookies(req);
+
+    const session =
+        getValidSession(
+            webKeySessions,
+            cookies.web_key_session
+        );
+
+    if (!session) {
+
+        return res.status(401).json({
+
+            ok: false,
+
+            error:
+                "Necesitas introducir una KEY válida."
+
+        });
+
+    }
+
+    req.webKeySession =
+        session;
+
+    req.webKeyToken =
+        cookies.web_key_session;
+
+    next();
+}
+
+function requireKeyAdmin(req, res, next) {
+
+    const cookies =
+        parseCookies(req);
+
+    const session =
+        getValidSession(
+            adminKeySessions,
+            cookies.key_admin_session
+        );
+
+    if (!session) {
+
+        return res.status(401).json({
+
+            ok: false,
+
+            error:
+                "No autorizado."
+
+        });
+
+    }
+
+    req.adminKeySession =
+        session;
+
+    next();
+}
+
+
 
 // =====================================================
 // POSTGRESQL
@@ -160,6 +302,30 @@ async function initDB() {
 
         `);
 
+
+        await pool.query(`
+
+            CREATE TABLE IF NOT EXISTS api_keys (
+
+                id SERIAL PRIMARY KEY,
+
+                api_key TEXT UNIQUE NOT NULL,
+
+                nombre TEXT NOT NULL,
+
+                limite INTEGER NOT NULL DEFAULT 0,
+
+                usados INTEGER NOT NULL DEFAULT 0,
+
+                activa BOOLEAN NOT NULL DEFAULT TRUE,
+
+                creada_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                ultima_vez_usada TIMESTAMP
+
+            );
+
+        `);
 
         console.log(
             "💾 Tablas PostgreSQL listas."
@@ -392,10 +558,6 @@ async function addUserToGuild(
                                 "application/json"
 
                         },
-
-                        // MUY IMPORTANTE
-                        // Evita que se quede bloqueado
-                        // indefinidamente.
 
                         timeout: 15000,
 
@@ -845,10 +1007,7 @@ async function registerMassJoinCommand() {
 
     }
 
-}
-
-
-// =====================================================
+}// =====================================================
 // BOT READY
 // =====================================================
 
@@ -857,9 +1016,7 @@ client.once(
     async () => {
 
         console.log(
-
             `✅ Bot conectado como ${client.user.tag}`
-
         );
 
 
@@ -870,7 +1027,6 @@ client.once(
         try {
 
             const ticketPanel =
-
                 require(
                     "./modules/tickets/panel"
                 );
@@ -904,10 +1060,17 @@ client.once(
         }
 
 
+        // =================================================
+        // BASE DE DATOS
+        // =================================================
+
         await initDB();
 
 
-        // Registrar comando
+        // =================================================
+        // REGISTRAR COMANDO
+        // =================================================
+
         await registerMassJoinCommand();
 
 
@@ -1193,6 +1356,7 @@ client.on(
                             "Servidor destino"
                         );
 
+
                 const guildIdInput =
                     new TextInputBuilder()
                         .setCustomId(
@@ -1211,15 +1375,18 @@ client.on(
                         .setMinLength(17)
                         .setMaxLength(20);
 
+
                 const inputRow =
                     new ActionRowBuilder()
                         .addComponents(
                             guildIdInput
                         );
 
+
                 modal.addComponents(
                     inputRow
                 );
+
 
                 return interaction.showModal(
                     modal
@@ -2110,147 +2277,97 @@ client.on(
     }
 
 );
-
-
 // =====================================================
-// LIMPIAR STATES
+// LIMPIAR STATES OAUTH
 // =====================================================
 
-setInterval(
+setInterval(() => {
 
-    () => {
+    const ahora = Date.now();
 
-        const now =
-            Date.now();
+    for (const [state, data] of oauthStates.entries()) {
 
-
-        for (
-
-            const [
-
-                state,
-
-                data
-
-            ]
-
-            of oauthStates.entries()
-
+        if (
+            ahora - data.createdAt >
+            10 * 60 * 1000
         ) {
 
-            if (
-
-                now -
-
-                data.createdAt >
-
-                10 * 60 * 1000
-
-            ) {
-
-                oauthStates.delete(
-
-                    state
-
-                );
-
-            }
+            oauthStates.delete(state);
 
         }
 
-    },
+    }
 
-    10 * 60 * 1000
-
-);
+}, 10 * 60 * 1000);
 
 
 // =====================================================
 // EXPRESS
 // =====================================================
 
-const app =
-    express();
+const app = express();
 
 
+// JSON
 app.use(
-
-    express.static(
-
-        path.join(
-
-            __dirname,
-
-            "public"
-
-        )
-
-    )
-
+    express.json({
+        limit: "1mb"
+    })
 );
 
 
+// ARCHIVOS PÚBLICOS
 app.use(
-
-    "/modules",
-
     express.static(
-
         path.join(
-
             __dirname,
-
-            "views/modules"
-
+            "public"
         )
-
     )
+);
 
+
+// MÓDULOS
+app.use(
+    "/modules",
+    express.static(
+        path.join(
+            __dirname,
+            "views/modules"
+        )
+    )
 );
 
 
 // =====================================================
-// HOME
+// PÁGINA PRINCIPAL
 // =====================================================
 
 app.get(
-
     "/",
-
     (req, res) => {
 
         res.send(
-
             "✅ Discord Verify Bot funcionando"
-
         );
 
     }
-
 );
 
 
 // =====================================================
-// API CANALES
+// API - CANALES
 // =====================================================
 
 app.get(
-
     "/api/channels",
-
     async (req, res) => {
 
         try {
 
-            // IMPORTANTE:
-            // Este panel utiliza el servidor principal.
-
             const guild =
-
                 client.guilds.cache.get(
-
                     "1515037603219509309"
-
                 );
 
 
@@ -2262,53 +2379,40 @@ app.get(
 
 
             const channels =
-
                 guild.channels.cache
-
                     .filter(
-
-                        c =>
-
-                            c.isTextBased()
-
+                        channel =>
+                            channel.isTextBased()
                     )
-
                     .map(
-
-                        c => ({
-
+                        channel => ({
                             id:
-                                c.id,
+                                channel.id,
 
                             nombre:
-                                c.name
-
+                                channel.name
                         })
-
                     );
 
 
-            res.json(
-
+            return res.json(
                 channels
-
             );
 
 
         } catch (error) {
 
             console.error(
-
+                "❌ Error obteniendo canales:",
                 error
-
             );
 
-            res.json([]);
+
+            return res.json([]);
 
         }
 
     }
-
 );
 
 
@@ -2317,91 +2421,76 @@ app.get(
 // =====================================================
 
 app.get(
-
     "/panel",
-
     (req, res) => {
 
         res.sendFile(
-
             path.join(
-
                 __dirname,
-
                 "views",
-
                 "dashboard.html"
-
             )
-
         );
 
     }
-
 );
 
 
 // =====================================================
-// ESTADÍSTICAS
+// API ESTADÍSTICAS
 // =====================================================
 
 app.get(
-
     "/api/stats",
-
     async (req, res) => {
 
         try {
 
             const usuarios =
-
                 await pool.query(
-
                     "SELECT COUNT(*) FROM usuarios"
-
                 );
 
 
             const tickets =
-
                 await pool.query(
-
                     "SELECT COUNT(*) FROM tickets"
-
                 );
 
 
             const abiertos =
-
                 await pool.query(
-
-                    "SELECT COUNT(*) FROM tickets WHERE status='open'"
-
+                    "SELECT COUNT(*) FROM tickets WHERE status = 'open'"
                 );
 
 
             const cerrados =
-
                 await pool.query(
-
-                    "SELECT COUNT(*) FROM tickets WHERE status='closed'"
-
+                    "SELECT COUNT(*) FROM tickets WHERE status = 'closed'"
                 );
 
 
-            res.json({
+            return res.json({
 
                 usuarios:
-                    usuarios.rows[0].count,
+                    Number(
+                        usuarios.rows[0].count
+                    ),
 
                 tickets:
-                    tickets.rows[0].count,
+                    Number(
+                        tickets.rows[0].count
+                    ),
 
                 abiertos:
-                    abiertos.rows[0].count,
+                    Number(
+                        abiertos.rows[0].count
+                    ),
 
                 cerrados:
-                    cerrados.rows[0].count
+                    Number(
+                        cerrados.rows[0].count
+                    )
 
             });
 
@@ -2409,32 +2498,26 @@ app.get(
         } catch (error) {
 
             console.error(
-
+                "❌ Error obteniendo estadísticas:",
                 error
-
             );
 
 
-            res.json({
+            return res.status(500).json({
 
-                usuarios:
-                    0,
+                usuarios: 0,
 
-                tickets:
-                    0,
+                tickets: 0,
 
-                abiertos:
-                    0,
+                abiertos: 0,
 
-                cerrados:
-                    0
+                cerrados: 0
 
             });
 
         }
 
     }
-
 );
 
 
@@ -2443,168 +2526,1629 @@ app.get(
 // =====================================================
 
 app.get(
-
     "/enviar",
-
     async (req, res) => {
 
         try {
 
+            const canalId =
+                String(
+                    req.query.canal || ""
+                ).trim();
+
+
+            const mensaje =
+                String(
+                    req.query.mensaje || ""
+                ).trim();
+
+
+            if (!canalId) {
+
+                return res.status(400).send(
+                    "❌ Falta el ID del canal."
+                );
+
+            }
+
+
+            if (!mensaje) {
+
+                return res.status(400).send(
+                    "❌ Falta el mensaje."
+                );
+
+            }
+
+
             const channel =
-
                 await client.channels.fetch(
-
-                    req.query.canal
-
+                    canalId
                 );
 
 
             if (!channel) {
 
-                return res.send(
+                return res.status(404).send(
+                    "❌ Canal no encontrado."
+                );
 
-                    "Canal no encontrado"
+            }
 
+
+            if (!channel.isTextBased()) {
+
+                return res.status(400).send(
+                    "❌ El canal no permite enviar mensajes."
                 );
 
             }
 
 
             await channel.send(
-
-                req.query.mensaje
-
+                mensaje
             );
 
 
-            res.send(
-
-                "✅ Mensaje enviado"
-
+            return res.send(
+                "✅ Mensaje enviado correctamente."
             );
 
 
         } catch (error) {
 
             console.error(
+                "❌ Error enviando mensaje:",
+                error
+            );
+
+
+            return res.status(500).send(
+                "❌ Error enviando el mensaje."
+            );
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// WEB DE KEYS
+// =====================================================
+
+app.get(
+    "/keys",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "views",
+                "keys.html"
+            )
+        );
+
+    }
+);
+
+
+app.get(
+    "/keys-admin",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "views",
+                "keys-admin.html"
+            )
+        );
+
+    }
+);
+
+
+// =====================================================
+// LOGIN WEB CON KEY
+// =====================================================
+
+app.post(
+    "/api/keys/login",
+    async (req, res) => {
+
+        try {
+
+            const key =
+                String(
+                    req.body?.key || ""
+                ).trim();
+
+
+            if (!key) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "Introduce una KEY."
+
+                });
+
+            }
+
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        nombre,
+                        limite,
+                        usados,
+                        activa
+                    FROM api_keys
+                    WHERE api_key = $1
+                    LIMIT 1
+                    `,
+                    [key]
+                );
+
+
+            if (!result.rows.length) {
+
+                return res.status(401).json({
+
+                    ok: false,
+
+                    error:
+                        "KEY inválida."
+
+                });
+
+            }
+
+
+            const dbKey =
+                result.rows[0];
+
+
+            if (!dbKey.activa) {
+
+                return res.status(403).json({
+
+                    ok: false,
+
+                    error:
+                        "Esta KEY está desactivada."
+
+                });
+
+            }
+
+
+            if (
+                dbKey.limite > 0 &&
+                dbKey.usados >= dbKey.limite
+            ) {
+
+                return res.status(403).json({
+
+                    ok: false,
+
+                    error:
+                        "Esta KEY ha alcanzado su límite."
+
+                });
+
+            }
+
+
+            const token =
+                createSession(
+                    webKeySessions,
+                    {
+                        apiKeyId:
+                            dbKey.id
+                    },
+                    WEB_SESSION_TTL_MS
+                );
+
+
+            setSessionCookie(
+                res,
+                "web_key_session",
+                token,
+                WEB_SESSION_TTL_MS
+            );
+
+
+            return res.json({
+
+                ok: true
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "❌ Error iniciando sesión con KEY:",
+                error
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Error interno del servidor."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// COMPROBAR SESIÓN KEY
+// =====================================================
+
+app.get(
+    "/api/keys/me",
+    requireWebKey,
+    async (req, res) => {
+
+        try {
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        api_key,
+                        nombre,
+                        limite,
+                        usados,
+                        activa,
+                        creada_at,
+                        ultima_vez_usada
+                    FROM api_keys
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.webKeySession.apiKeyId
+                    ]
+                );
+
+
+            if (!result.rows.length) {
+
+                return res.status(401).json({
+
+                    ok: false,
+
+                    error:
+                        "KEY no encontrada."
+
+                });
+
+            }
+
+
+            const key =
+                result.rows[0];
+
+
+            if (!key.activa) {
+
+                return res.status(403).json({
+
+                    ok: false,
+
+                    error:
+                        "KEY desactivada."
+
+                });
+
+            }
+
+
+            return res.json({
+
+                ok: true,
+
+                key: {
+
+                    nombre:
+                        key.nombre,
+
+                    limite:
+                        key.limite,
+
+                    usados:
+                        key.usados,
+
+                    restantes:
+                        key.limite > 0
+                            ? Math.max(
+                                0,
+                                key.limite -
+                                key.usados
+                            )
+                            : null
+
+                }
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "❌ Error comprobando KEY:",
+                error
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Error interno."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// LOGOUT KEY
+// =====================================================
+
+app.post(
+    "/api/keys/logout",
+    (req, res) => {
+
+        const cookies =
+            parseCookies(req);
+
+
+        if (cookies.web_key_session) {
+
+            webKeySessions.delete(
+                cookies.web_key_session
+            );
+
+        }
+
+
+        clearSessionCookie(
+            res,
+            "web_key_session"
+        );
+
+
+        return res.json({
+
+            ok: true
+
+        });
+
+    }
+);// =====================================================
+// AÑADIR USUARIOS DESDE LA WEB
+// =====================================================
+
+app.post(
+    "/api/keys/add-users",
+    requireWebKey,
+    async (req, res) => {
+
+        try {
+
+            const guildId =
+                String(
+                    req.body?.guildId || ""
+                ).trim();
+
+
+            const quantity =
+                Number(
+                    req.body?.quantity
+                );
+
+
+            // =================================================
+            // COMPROBAR SERVIDOR
+            // =================================================
+
+            if (
+                !/^\d{17,20}$/.test(
+                    guildId
+                )
+            ) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "La ID del servidor no es válida."
+
+                });
+
+            }
+
+
+            // =================================================
+            // COMPROBAR CANTIDAD
+            // =================================================
+
+            if (
+                ![
+                    10,
+                    20,
+                    50,
+                    100
+                ].includes(
+                    quantity
+                )
+            ) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "Cantidad no permitida."
+
+                });
+
+            }
+
+
+            // =================================================
+            // BUSCAR SERVIDOR
+            // =================================================
+
+            const guild =
+                client.guilds.cache.get(
+                    guildId
+                );
+
+
+            if (!guild) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "El bot no está dentro de ese servidor."
+
+                });
+
+            }
+
+
+            // =================================================
+            // RESERVAR USUARIOS DE LA KEY
+            // =================================================
+
+            const reserve =
+                await pool.query(
+
+                    `
+                    UPDATE api_keys
+
+                    SET
+                        usados = usados + $1,
+                        ultima_vez_usada = CURRENT_TIMESTAMP
+
+                    WHERE
+                        id = $2
+
+                        AND activa = TRUE
+
+                        AND usados + $1 <= limite
+
+                    RETURNING
+                        id,
+                        nombre,
+                        limite,
+                        usados
+                    `,
+
+                    [
+                        quantity,
+                        req.webKeySession.apiKeyId
+                    ]
+
+                );
+
+
+            if (
+                !reserve.rows.length
+            ) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "No tienes suficientes usuarios disponibles en esta KEY."
+
+                });
+
+            }
+
+
+            // =================================================
+            // OBTENER USUARIOS
+            // =================================================
+
+            let usersResult;
+
+
+            try {
+
+                usersResult =
+                    await pool.query(
+
+                        `
+                        SELECT
+                            discord_id,
+                            username,
+                            global_name,
+                            avatar,
+                            access_token,
+                            refresh_token,
+                            expires_at
+
+                        FROM usuarios
+
+                        ORDER BY verified_at ASC
+
+                        LIMIT $1
+                        `,
+
+                        [
+                            quantity
+                        ]
+
+                    );
+
+
+            } catch (error) {
+
+                // Devolver la reserva si falla PostgreSQL
+
+                await pool.query(
+
+                    `
+                    UPDATE api_keys
+
+                    SET
+                        usados =
+                            GREATEST(
+                                0,
+                                usados - $1
+                            )
+
+                    WHERE id = $2
+                    `,
+
+                    [
+                        quantity,
+                        req.webKeySession.apiKeyId
+                    ]
+
+                );
+
+
+                throw error;
+
+            }
+
+
+            const users =
+                usersResult.rows;
+
+
+            // =================================================
+            // NO HAY USUARIOS
+            // =================================================
+
+            if (
+                !users.length
+            ) {
+
+                await pool.query(
+
+                    `
+                    UPDATE api_keys
+
+                    SET
+                        usados =
+                            GREATEST(
+                                0,
+                                usados - $1
+                            )
+
+                    WHERE id = $2
+                    `,
+
+                    [
+                        quantity,
+                        req.webKeySession.apiKeyId
+                    ]
+
+                );
+
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "No hay usuarios verificados disponibles."
+
+                });
+
+            }
+
+
+            // =================================================
+            // CONTADORES
+            // =================================================
+
+            let added = 0;
+
+            let already = 0;
+
+            let failed = 0;
+
+
+            // =================================================
+            // PROCESAR USUARIOS
+            // =================================================
+
+            for (
+                let i = 0;
+                i < users.length;
+                i++
+            ) {
+
+                const user =
+                    users[i];
+
+
+                console.log(
+
+                    `🌐 [KEY] Procesando ${i + 1}/${users.length}: ${user.username}`
+
+                );
+
+
+                const result =
+                    await addUserToGuild(
+
+                        user,
+
+                        guildId
+
+                    );
+
+
+                if (
+                    result.ok
+                ) {
+
+                    if (
+                        result.already
+                    ) {
+
+                        already++;
+
+                    } else {
+
+                        added++;
+
+                    }
+
+                } else {
+
+                    failed++;
+
+
+                    console.error(
+
+                        `❌ [KEY] Error con ${user.username}: ${result.reason}`
+
+                    );
+
+                }
+
+
+                // =================================================
+                // ESPERA ENTRE USUARIOS
+                // =================================================
+
+                if (
+                    i <
+                    users.length - 1
+                ) {
+
+                    await sleep(
+
+                        MASS_JOIN_DELAY_MS
+
+                    );
+
+                }
+
+            }
+
+
+            // =================================================
+            // DEVOLVER DIFERENCIA SI NO SE PROCESÓ TODO
+            // =================================================
+
+            const procesados =
+                added +
+                already +
+                failed;
+
+
+            const refund =
+                Math.max(
+
+                    0,
+
+                    quantity -
+                    procesados
+
+                );
+
+
+            if (
+                refund > 0
+            ) {
+
+                await pool.query(
+
+                    `
+                    UPDATE api_keys
+
+                    SET
+                        usados =
+                            GREATEST(
+                                0,
+                                usados - $1
+                            )
+
+                    WHERE id = $2
+                    `,
+
+                    [
+                        refund,
+                        req.webKeySession.apiKeyId
+                    ]
+
+                );
+
+            }
+
+
+            // =================================================
+            // DATOS ACTUALIZADOS DE LA KEY
+            // =================================================
+
+            const updated =
+                await pool.query(
+
+                    `
+                    SELECT
+                        limite,
+                        usados
+
+                    FROM api_keys
+
+                    WHERE id = $1
+                    `,
+
+                    [
+                        req.webKeySession.apiKeyId
+                    ]
+
+                );
+
+
+            const keyData =
+                updated.rows[0];
+
+
+            const limite =
+                keyData?.limite ?? 0;
+
+
+            const usados =
+                keyData?.usados ?? 0;
+
+
+            const restantes =
+                Math.max(
+
+                    0,
+
+                    limite -
+                    usados
+
+                );
+
+
+            // =================================================
+            // RESPUESTA
+            // =================================================
+
+            return res.json({
+
+                ok: true,
+
+                guild:
+                    guild.name,
+
+                solicitados:
+                    quantity,
+
+                procesados:
+
+                    procesados,
+
+                added:
+                    added,
+
+                already:
+                    already,
+
+                failed:
+                    failed,
+
+                limite:
+                    limite,
+
+                usados:
+                    usados,
+
+                restantes:
+                    restantes
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+
+                "❌ Error en /api/keys/add-users:",
 
                 error
 
             );
 
 
-            res.send(
+            return res.status(500).json({
 
-                "❌ Error"
+                ok: false,
+
+                error:
+                    "Error interno durante el proceso."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// ADMINISTRADOR DE KEYS
+// =====================================================
+
+
+// =====================================================
+// LOGIN ADMIN
+// =====================================================
+
+app.post(
+    "/api/keys-admin/login",
+    (req, res) => {
+
+        try {
+
+            const password =
+                String(
+                    req.body?.password || ""
+                );
+
+
+            const adminPassword =
+                process.env.KEY_ADMIN_PASSWORD;
+
+
+            if (!adminPassword) {
+
+                return res.status(500).json({
+
+                    ok: false,
+
+                    error:
+                        "Falta configurar KEY_ADMIN_PASSWORD en las variables de entorno."
+
+                });
+
+            }
+
+
+            const passwordBuffer =
+                Buffer.from(
+                    password
+                );
+
+
+            const adminBuffer =
+                Buffer.from(
+                    adminPassword
+                );
+
+
+            if (
+                passwordBuffer.length !==
+                adminBuffer.length
+            ) {
+
+                return res.status(401).json({
+
+                    ok: false,
+
+                    error:
+                        "Contraseña incorrecta."
+
+                });
+
+            }
+
+
+            if (
+                !crypto.timingSafeEqual(
+
+                    passwordBuffer,
+
+                    adminBuffer
+
+                )
+            ) {
+
+                return res.status(401).json({
+
+                    ok: false,
+
+                    error:
+                        "Contraseña incorrecta."
+
+                });
+
+            }
+
+
+            const token =
+                createSession(
+
+                    adminKeySessions,
+
+                    {},
+
+                    ADMIN_SESSION_TTL_MS
+
+                );
+
+
+            setSessionCookie(
+
+                res,
+
+                "key_admin_session",
+
+                token,
+
+                ADMIN_SESSION_TTL_MS
+
+            );
+
+
+            return res.json({
+
+                ok: true
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+
+                "❌ Error login administrador KEY:",
+
+                error
+
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Error interno del servidor."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// LOGOUT ADMIN
+// =====================================================
+
+app.post(
+    "/api/keys-admin/logout",
+    (req, res) => {
+
+        const cookies =
+            parseCookies(req);
+
+
+        if (
+            cookies.key_admin_session
+        ) {
+
+            adminKeySessions.delete(
+
+                cookies.key_admin_session
 
             );
 
         }
 
-    }
 
+        clearSessionCookie(
+
+            res,
+
+            "key_admin_session"
+
+        );
+
+
+        return res.json({
+
+            ok: true
+
+        });
+
+    }
 );
 
 
 // =====================================================
-// CALLBACK OAUTH
+// LISTAR KEYS
 // =====================================================
 
 app.get(
+    "/api/keys-admin/list",
+    requireKeyAdmin,
+    async (req, res) => {
 
+        try {
+
+            const result =
+                await pool.query(
+
+                    `
+                    SELECT
+                        id,
+                        api_key,
+                        nombre,
+                        limite,
+                        usados,
+                        activa,
+                        creada_at,
+                        ultima_vez_usada
+
+                    FROM api_keys
+
+                    ORDER BY id DESC
+                    `
+
+                );
+
+
+            return res.json({
+
+                ok: true,
+
+                keys:
+
+                    result.rows.map(
+
+                        key => ({
+
+                            ...key,
+
+                            restantes:
+
+                                Math.max(
+
+                                    0,
+
+                                    key.limite -
+                                    key.usados
+
+                                )
+
+                        })
+
+                    )
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+
+                "❌ Error listando KEYS:",
+
+                error
+
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Error interno del servidor."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// CREAR KEY
+// =====================================================
+
+app.post(
+    "/api/keys-admin/create",
+    requireKeyAdmin,
+    async (req, res) => {
+
+        try {
+
+            const nombre =
+                String(
+                    req.body?.nombre || ""
+                ).trim();
+
+
+            const limite =
+                Number(
+                    req.body?.limite
+                );
+
+
+            // =================================================
+            // COMPROBAR NOMBRE
+            // =================================================
+
+            if (
+                !nombre ||
+                nombre.length > 100
+            ) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "Introduce un nombre válido (máximo 100 caracteres)."
+
+                });
+
+            }
+
+
+            // =================================================
+            // COMPROBAR LÍMITE
+            // =================================================
+
+            if (
+                !Number.isInteger(
+                    limite
+                ) ||
+                limite < 1 ||
+                limite > 100000
+            ) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "El límite debe ser un número entre 1 y 100000."
+
+                });
+
+            }
+
+
+            // =================================================
+            // GENERAR KEY ÚNICA
+            // =================================================
+
+            let apiKey;
+
+            let created = false;
+
+
+            for (
+                let intento = 0;
+                intento < 5 &&
+                !created;
+                intento++
+            ) {
+
+                apiKey =
+                    generateWebKey();
+
+
+                try {
+
+                    await pool.query(
+
+                        `
+                        INSERT INTO api_keys
+                            (
+                                api_key,
+                                nombre,
+                                limite
+                            )
+
+                        VALUES
+                            (
+                                $1,
+                                $2,
+                                $3
+                            )
+                        `,
+
+                        [
+                            apiKey,
+                            nombre,
+                            limite
+                        ]
+
+                    );
+
+
+                    created = true;
+
+
+                } catch (error) {
+
+                    // 23505 = clave duplicada
+
+                    if (
+                        error.code !==
+                        "23505"
+                    ) {
+
+                        throw error;
+
+                    }
+
+                }
+
+            }
+
+
+            if (
+                !created
+            ) {
+
+                return res.status(500).json({
+
+                    ok: false,
+
+                    error:
+                        "No se pudo generar una KEY única."
+
+                });
+
+            }
+
+
+            // =================================================
+            // RESPUESTA
+            // =================================================
+
+            return res.json({
+
+                ok: true,
+
+                apiKey:
+                    apiKey,
+
+                nombre:
+                    nombre,
+
+                limite:
+                    limite
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+
+                "❌ Error creando KEY:",
+
+                error
+
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Error interno del servidor."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// ACTIVAR / DESACTIVAR KEY
+// =====================================================
+
+app.post(
+    "/api/keys-admin/toggle",
+    requireKeyAdmin,
+    async (req, res) => {
+
+        try {
+
+            const id =
+                Number(
+                    req.body?.id
+                );
+
+
+            if (
+                !Number.isInteger(id) ||
+                id < 1
+            ) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error:
+                        "ID de KEY no válido."
+
+                });
+
+            }
+
+
+            const result =
+                await pool.query(
+
+                    `
+                    UPDATE api_keys
+
+                    SET
+                        activa = NOT activa
+
+                    WHERE id = $1
+
+                    RETURNING
+                        id,
+                        api_key,
+                        nombre,
+                        limite,
+                        usados,
+                        activa
+                    `,
+
+                    [
+                        id
+                    ]
+
+                );
+
+
+            if (
+                !result.rows.length
+            ) {
+
+                return res.status(404).json({
+
+                    ok: false,
+
+                    error:
+                        "KEY no encontrada."
+
+                });
+
+            }
+
+
+            return res.json({
+
+                ok: true,
+
+                key:
+                    result.rows[0]
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+
+                "❌ Error cambiando estado de KEY:",
+
+                error
+
+            );
+
+
+            return res.status(500).json({
+
+                ok: false,
+
+                error:
+                    "Error interno del servidor."
+
+            });
+
+        }
+
+    }
+);// =====================================================
+// CALLBACK OAUTH2
+// =====================================================
+
+app.get(
     "/callback",
-
     async (req, res) => {
 
         try {
 
             const code =
-                req.query.code;
+                String(
+                    req.query.code || ""
+                ).trim();
+
 
             const state =
-                req.query.state;
+                String(
+                    req.query.state || ""
+                ).trim();
 
 
-            if (
+            // =================================================
+            // COMPROBAR CODE
+            // =================================================
 
-                !code ||
+            if (!code) {
 
-                !state
-
-            ) {
-
-                return res.send(
-
-                    "❌ Falta información de verificación."
-
+                return res.status(400).send(
+                    "❌ Falta el código de autorización."
                 );
 
             }
 
 
             // =================================================
-            // RECUPERAR STATE
+            // COMPROBAR STATE
             // =================================================
 
-            const oauthData =
+            if (!state) {
 
+                return res.status(400).send(
+                    "❌ Falta el estado de OAuth."
+                );
+
+            }
+
+
+            const stateData =
                 oauthStates.get(
-
                     state
-
                 );
 
 
-            if (!oauthData) {
+            if (!stateData) {
 
-                return res.send(
-
-                    "❌ La sesión de verificación ha caducado o no es válida. Vuelve a pulsar el botón de verificar."
-
+                return res.status(400).send(
+                    "❌ El enlace de verificación ha caducado o no es válido."
                 );
 
             }
 
 
-            // Usar solo una vez
+            // =================================================
+            // ELIMINAR STATE
+            // =================================================
 
             oauthStates.delete(
-
                 state
-
             );
 
 
-            // =================================================
-            // CONFIGURACIÓN DEL SERVIDOR
-            // =================================================
+            const guildId =
+                stateData.guildId;
+
 
             const config =
-
                 verificationServers[
-
-                    oauthData.guildId
-
+                    guildId
                 ];
 
 
             if (!config) {
 
-                return res.send(
-
+                return res.status(400).send(
                     "❌ El servidor no está configurado."
-
                 );
 
             }
 
 
             // =================================================
-            // CONSEGUIR TOKEN
+            // OBTENER TOKEN
             // =================================================
 
             const tokenResponse =
-
                 await axios.post(
 
                     "https://discord.com/api/oauth2/token",
@@ -2643,25 +4187,22 @@ app.get(
 
 
             const accessToken =
-
-                tokenResponse.data
-                    .access_token;
+                tokenResponse.data.access_token;
 
 
             const refreshToken =
-
-                tokenResponse.data
-                    .refresh_token;
+                tokenResponse.data.refresh_token;
 
 
             const expiresAt =
-
                 new Date(
 
                     Date.now() +
 
-                    tokenResponse.data
-                        .expires_in *
+                    (
+                        tokenResponse.data.expires_in ||
+                        604800
+                    ) *
 
                     1000
 
@@ -2669,11 +4210,10 @@ app.get(
 
 
             // =================================================
-            // OBTENER USUARIO
+            // OBTENER INFORMACIÓN DEL USUARIO
             // =================================================
 
             const userResponse =
-
                 await axios.get(
 
                     "https://discord.com/api/users/@me",
@@ -2692,52 +4232,42 @@ app.get(
                 );
 
 
-            const user =
+            const discordUser =
                 userResponse.data;
 
 
-            console.log(
-
-                "👤 Usuario verificado:",
-
-                user.username
-
-            );
-
-
             // =================================================
-            // GUARDAR USUARIO
+            // GUARDAR / ACTUALIZAR USUARIO
             // =================================================
 
             await pool.query(
 
                 `
-
                 INSERT INTO usuarios
-
                 (
-
                     discord_id,
-
                     username,
-
                     global_name,
-
                     avatar,
-
                     access_token,
-
                     refresh_token,
-
-                    expires_at
-
+                    expires_at,
+                    verified_at
                 )
 
                 VALUES
+                (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    $7,
+                    CURRENT_TIMESTAMP
+                )
 
-                ($1,$2,$3,$4,$5,$6,$7)
-
-                ON CONFLICT(discord_id)
+                ON CONFLICT (discord_id)
 
                 DO UPDATE SET
 
@@ -2761,18 +4291,19 @@ app.get(
 
                     verified_at =
                         CURRENT_TIMESTAMP
-
                 `,
 
                 [
 
-                    user.id,
+                    discordUser.id,
 
-                    user.username,
+                    discordUser.username,
 
-                    user.global_name,
+                    discordUser.global_name ||
+                        null,
 
-                    user.avatar,
+                    discordUser.avatar ||
+                        null,
 
                     accessToken,
 
@@ -2785,83 +4316,98 @@ app.get(
             );
 
 
-            console.log(
-
-                "💾 Usuario guardado en PostgreSQL."
-
-            );
-
-
             // =================================================
-            // ASIGNAR ROL
+            // AÑADIR ROL DE VERIFICADO
             // =================================================
 
-            try {
+            const guild =
+                client.guilds.cache.get(
+                    guildId
+                );
 
-                const guild =
 
-                    client.guilds.cache.get(
+            if (!guild) {
 
-                        oauthData.guildId
+                return res.status(500).send(
+                    "❌ El bot no encuentra el servidor."
+                );
 
+            }
+
+
+            const member =
+                await guild.members.fetch(
+                    discordUser.id
+                ).catch(
+                    () => null
+                );
+
+
+            if (member) {
+
+                const role =
+                    guild.roles.cache.get(
+                        config.roleId
                     );
 
 
-                if (!guild) {
+                if (role) {
 
-                    return res.send(
-
-                        "❌ Servidor no encontrado."
-
+                    await member.roles.add(
+                        role
                     );
 
                 }
 
+            }
 
-                console.log(
 
-                    `🏠 Servidor: ${guild.name}`
+            // =================================================
+            // AÑADIR USUARIO AL SERVIDOR
+            // =================================================
+
+            try {
+
+                await axios.put(
+
+                    `https://discord.com/api/v10/guilds/${guildId}/members/${discordUser.id}`,
+
+                    {
+
+                        access_token:
+                            accessToken
+
+                    },
+
+                    {
+
+                        headers: {
+
+                            Authorization:
+                                `Bot ${process.env.TOKEN}`,
+
+                            "Content-Type":
+                                "application/json"
+
+                        },
+
+                        timeout:
+                            15000,
+
+                        validateStatus:
+                            () => true
+
+                    }
 
                 );
-
-
-                const member =
-
-                    await guild.members.fetch(
-
-                        user.id
-
-                    );
-
-
-                await member.roles.add(
-
-                    config.roleId
-
-                );
-
-
-                console.log(
-
-                    "✅ Rol asignado correctamente."
-
-                );
-
 
             } catch (error) {
 
                 console.error(
 
-                    "❌ Error al asignar el rol:",
+                    "❌ Error añadiendo usuario al servidor:",
 
-                    error
-
-                );
-
-
-                return res.send(
-
-                    "❌ La verificación se completó, pero no se pudo asignar el rol."
+                    error.message
 
                 );
 
@@ -2869,263 +4415,148 @@ app.get(
 
 
             // =================================================
-            // PÁGINA ÉXITO
+            // RESPUESTA FINAL
             // =================================================
 
             return res.send(`
 
-<!DOCTYPE html>
+                <!DOCTYPE html>
 
-<html lang="es">
+                <html lang="es">
 
-<head>
+                <head>
 
-<meta charset="UTF-8">
+                    <meta charset="UTF-8">
 
-<meta
+                    <meta name="viewport"
+                        content="width=device-width, initial-scale=1.0">
 
-    name="viewport"
+                    <title>Verificación completada</title>
 
-    content="width=device-width, initial-scale=1.0"
+                    <style>
 
->
+                        * {
+                            box-sizing: border-box;
+                        }
 
-<title>
+                        body {
 
-    Verificación del servidor
+                            margin: 0;
 
-</title>
+                            min-height: 100vh;
 
+                            display: flex;
 
-<style>
+                            align-items: center;
 
-* {
+                            justify-content: center;
 
-    box-sizing:
-        border-box;
+                            background:
+                                #111111;
 
-}
+                            font-family:
+                                Arial,
+                                sans-serif;
 
+                            color:
+                                white;
 
-body {
+                        }
 
-    margin:
-        0;
+                        .box {
 
-    height:
-        100vh;
+                            width:
+                                min(500px, 90%);
 
-    display:
-        flex;
+                            padding:
+                                40px;
 
-    justify-content:
-        center;
+                            text-align:
+                                center;
 
-    align-items:
-        center;
+                            background:
+                                #1b1b1b;
 
-    background:
-        linear-gradient(
+                            border:
+                                1px solid #333;
 
-            135deg,
+                            border-radius:
+                                20px;
 
-            #111,
+                            box-shadow:
+                                0 0 40px
+                                rgba(
+                                    255,
+                                    212,
+                                    0,
+                                    0.15
+                                );
 
-            #1b1b1b
+                        }
 
-        );
+                        .icon {
 
-    font-family:
-        Arial,
+                            font-size:
+                                70px;
 
-        sans-serif;
+                            margin-bottom:
+                                20px;
 
-    color:
-        #ddd;
+                        }
 
-}
+                        h1 {
 
+                            margin:
+                                0 0 15px;
 
-.card {
+                            color:
+                                #FFD400;
 
-    width:
-        480px;
+                        }
 
-    background:
-        #181818;
+                        p {
 
-    border:
-        2px solid #FFD400;
+                            color:
+                                #cccccc;
 
-    border-radius:
-        22px;
+                            line-height:
+                                1.6;
 
-    padding:
-        45px;
+                        }
 
-    text-align:
-        center;
+                    </style>
 
-    box-shadow:
-        0 0 40px
+                </head>
 
-        rgba(
+                <body>
 
-            255,
+                    <div class="box">
 
-            212,
+                        <div class="icon">
+                            ✅
+                        </div>
 
-            0,
+                        <h1>
+                            ¡Verificación completada!
+                        </h1>
 
-            .25
+                        <p>
+                            Tu cuenta de Discord ha sido
+                            verificada correctamente.
+                        </p>
 
-        );
+                        <p>
+                            Ya puedes volver a Discord.
+                        </p>
 
-}
+                    </div>
 
+                </body>
 
-.logo {
+                </html>
 
-    width:
-        120px;
+            `);
 
-    height:
-        120px;
-
-    border-radius:
-        50%;
-
-    margin-bottom:
-        25px;
-
-    border:
-        4px solid #FFD400;
-
-}
-
-
-h1 {
-
-    color:
-        #FFD400;
-
-    font-size:
-        34px;
-
-}
-
-
-p {
-
-    line-height:
-        1.7;
-
-}
-
-
-.box {
-
-    margin-top:
-        30px;
-
-    padding:
-        18px;
-
-    background:
-        #222;
-
-    border-radius:
-        12px;
-
-    border-left:
-        5px solid #FFD400;
-
-}
-
-
-.ok {
-
-    font-size:
-        70px;
-
-    margin-top:
-        30px;
-
-}
-
-</style>
-
-</head>
-
-
-<body>
-
-
-<div class="card">
-
-
-<img
-
-    class="logo"
-
-    src="https://cdn.discordapp.com/attachments/1515744948039848068/1527377287773818900/3F26C02F-83C3-42B2-84B0-D5A68C4CFD5F.png"
-
->
-
-
-<h1>
-
-    Verificación del servidor
-
-</h1>
-
-
-<p>
-
-    Para acceder al servidor debes autorizar tu cuenta de Discord.
-
-</p>
-
-
-<p>
-
-    No solicitaremos tu contraseña; la autenticación se realiza mediante el sistema oficial de Discord.
-
-</p>
-
-
-<div class="ok">
-
-    ✅
-
-</div>
-
-
-<div class="box">
-
-    <strong>
-
-        Verificación completada correctamente.
-
-    </strong>
-
-    <br>
-
-    <br>
-
-    Ya puedes volver a Discord y disfrutar del servidor.
-
-</div>
-
-
-</div>
-
-
-</body>
-
-</html>
-
-`);
 
         } catch (error) {
 
@@ -3134,66 +4565,135 @@ p {
                 "❌ Error en callback OAuth:",
 
                 error.response?.data ||
-
+                error.message ||
                 error
 
             );
 
 
-            return res.send(
+            return res.status(500).send(`
 
-                "❌ Ha ocurrido un error durante la verificación."
+                <!DOCTYPE html>
 
-            );
+                <html lang="es">
+
+                <head>
+
+                    <meta charset="UTF-8">
+
+                    <title>Error</title>
+
+                    <style>
+
+                        body {
+
+                            margin: 0;
+
+                            min-height: 100vh;
+
+                            display: flex;
+
+                            align-items: center;
+
+                            justify-content: center;
+
+                            background:
+                                #111;
+
+                            color:
+                                white;
+
+                            font-family:
+                                Arial,
+                                sans-serif;
+
+                        }
+
+                        .box {
+
+                            text-align:
+                                center;
+
+                            padding:
+                                40px;
+
+                            background:
+                                #1b1b1b;
+
+                            border-radius:
+                                20px;
+
+                        }
+
+                        h1 {
+
+                            color:
+                                #ff4444;
+
+                        }
+
+                    </style>
+
+                </head>
+
+                <body>
+
+                    <div class="box">
+
+                        <h1>
+                            ❌ Error de verificación
+                        </h1>
+
+                        <p>
+                            No se pudo completar la
+                            verificación.
+                        </p>
+
+                        <p>
+                            Vuelve a intentarlo desde
+                            Discord.
+                        </p>
+
+                    </div>
+
+                </body>
+
+                </html>
+
+            `);
 
         }
 
     }
-
 );
 
 
 // =====================================================
-// PUERTO
+// ARRANCAR SERVIDOR EXPRESS
 // =====================================================
 
 const PORT =
-
     process.env.PORT ||
-
-    3000;
+    8080;
 
 
 app.listen(
-
     PORT,
-
+    "0.0.0.0",
     () => {
 
         console.log(
-
-            `🌐 Servidor OAuth activo en puerto ${PORT}`
-
+            `🌐 Web funcionando en el puerto ${PORT}`
         );
 
     }
-
 );
 
 
 // =====================================================
-// INICIAR
+// LOGIN DEL BOT
 // =====================================================
-
-initDB().catch(
-
-    console.error
-
-);
-
 
 client.login(
-
     process.env.TOKEN
-
 );
