@@ -35,11 +35,7 @@ const verificationServers = {
         roleId: "1532089874247844010"
     },
 
-    // SERVIDOR 2
-    "1519063238866636851": {
-        channelId: "1545441908283801731",
-        roleId: "1519063337923641534"
-    }
+    
 
 };
 
