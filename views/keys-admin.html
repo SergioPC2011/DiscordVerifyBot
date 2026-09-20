@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KEYS • Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111;color:#eee;font-family:Arial,sans-serif;padding:30px}.wrap{max-width:1000px;margin:auto}.card{background:#181818;border:2px solid #FFD400;border-radius:20px;padding:25px;margin-bottom:20px}h1,h2{color:#FFD400}.input{padding:12px;border-radius:10px;border:1px solid #444;background:#242424;color:#fff;width:100%;margin:6px 0}.btn{border:0;border-radius:10px;padding:12px 16px;background:#FFD400;color:#111;font-weight:700;cursor:pointer;margin-top:8px}.btn.red{background:#9d3030;color:#fff}.row{display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end}.msg{margin-top:12px}.error{color:#ff7777}.key{font-family:monospace;background:#292929;padding:10px;border-radius:8px;word-break:break-all}.table{width:100%;border-collapse:collapse;margin-top:15px}.table th,.table td{border-bottom:1px solid #333;padding:12px;text-align:left}.active{color:#7CFF8A}.inactive{color:#ff7777}@media(max-width:700px){.row{grid-template-columns:1fr}.table{font-size:12px}}
+</style></head>
+<body><div class="wrap">
+<div id="login" class="card"><h1>🔐 Administrador de KEYS</h1><p>Esta zona es privada.</p><input id="password" type="password" class="input" placeholder="Contraseña maestra"><button class="btn" onclick="adminLogin()">Entrar</button><div id="loginMsg" class="error"></div></div>
+<div id="panel" class="hidden">
+<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h1>🔑 Generador de KEYS</h1><button class="btn" onclick="adminLogout()">Salir</button></div><div class="row"><div><label>Nombre</label><input id="name" class="input" placeholder="Cliente 1"></div><div><label>Límite de usuarios</label><input id="limit" type="number" min="1" max="100000" class="input" placeholder="50"></div><button class="btn" onclick="createKey()">Generar KEY</button></div><div id="createMsg" class="msg"></div></div>
+<div class="card"><h2>📋 KEYS creadas</h2><div id="list">Cargando...</div></div>
+</div></div>
+<script>
+const esc=s=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+async function adminLogin(){const password=document.getElementById('password').value;const r=await fetch('/api/keys-admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})});const d=await r.json();if(!r.ok){document.getElementById('loginMsg').textContent=d.error||'Error';return}showPanel();}
+async function showPanel(){document.getElementById('login').classList.add('hidden');document.getElementById('panel').classList.remove('hidden');await loadKeys()}
+async function loadKeys(){const r=await fetch('/api/keys-admin/list');if(!r.ok){location.reload();return}const d=await r.json();if(!d.keys.length){document.getElementById('list').innerHTML='<p>No hay KEYS todavía.</p>';return}document.getElementById('list').innerHTML='<div style="overflow:auto"><table class="table"><tr><th>Nombre</th><th>KEY</th><th>Límite</th><th>Usados</th><th>Disponibles</th><th>Estado</th><th></th></tr>'+d.keys.map(k=>`<tr><td>${esc(k.nombre)}</td><td><div class="key">${esc(k.api_key)}</div></td><td>${k.limite}</td><td>${k.usados}</td><td>${k.restantes}</td><td class="${k.activa?'active':'inactive'}">${k.activa?'ACTIVA':'DESACTIVADA'}</td><td><button class="btn ${k.activa?'red':''}" onclick="toggleKey(${k.id})">${k.activa?'Desactivar':'Activar'}</button></td></tr>`).join('')+'</table></div>'}
+async function createKey(){const nombre=document.getElementById('name').value.trim();const limite=Number(document.getElementById('limit').value);const msg=document.getElementById('createMsg');msg.textContent='';const r=await fetch('/api/keys-admin/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre,limite})});const d=await r.json();if(!r.ok){msg.innerHTML='<span class="error">'+esc(d.error)+'</span>';return}msg.innerHTML='<div class="key">'+esc(d.apiKey)+'</div><p class="active">✅ KEY creada. Copia esta KEY y entrégasela al cliente.</p>';document.getElementById('name').value='';document.getElementById('limit').value='';await loadKeys()}
+async function toggleKey(id){await fetch('/api/keys-admin/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});await loadKeys()}
+async function adminLogout(){await fetch('/api/keys-admin/logout',{method:'POST'});location.reload()}
+fetch('/api/keys-admin/list').then(r=>{if(r.ok)showPanel()}).catch(()=>{});
+</script></body></html>
