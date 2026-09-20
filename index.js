@@ -961,17 +961,21 @@ async function addUserToGuild(
                     .setRequired(true)
                     .setMaxLength(4000)
             )
-            .addAttachmentOption(option =>
-                option
-                    .setName("banner")
-                    .setDescription("Imagen del anuncio (opcional)")
-                    .setRequired(false)
-            )
+            
+            // ARCHIVO OBLIGATORIO (debe ir antes del opcional)
             .addAttachmentOption(option =>
                 option
                     .setName("archivo")
                     .setDescription("Archivo que podrán descargar")
                     .setRequired(true)
+            )
+
+            // BANNER OPCIONAL (siempre después de los obligatorios)
+            .addAttachmentOption(option =>
+                option
+                    .setName("banner")
+                    .setDescription("Imagen del anuncio (opcional)")
+                    .setRequired(false)
             )
             .toJSON();
     for (
