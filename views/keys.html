@@ -4,82 +4,512 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Discord Verify • KEY</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Arial,sans-serif;background:linear-gradient(135deg,#111,#202020);color:#eee;display:flex;align-items:center;justify-content:center;padding:20px}.card{width:min(620px,100%);background:#181818;border:2px solid #FFD400;border-radius:22px;padding:32px;box-shadow:0 0 40px rgba(255,212,0,.16)}h1{margin:0 0 8px;color:#FFD400}p{color:#bbb}.input{width:100%;padding:14px 16px;border-radius:12px;border:1px solid #444;background:#242424;color:#fff;font-size:16px;outline:none}.input:focus{border-color:#FFD400}.btn{border:0;border-radius:12px;padding:13px 18px;font-weight:700;cursor:pointer;background:#FFD400;color:#111}.btn.secondary{background:#333;color:#fff}.row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.box{background:#222;border-radius:14px;padding:18px;margin-top:18px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#292929;border-radius:12px;padding:14px;text-align:center}.stat b{display:block;font-size:24px;color:#FFD400;margin-top:6px}.qty{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.qty button{padding:14px;border:1px solid #555;background:#292929;color:#fff;border-radius:12px;cursor:pointer;font-weight:700}.qty button:hover,.qty button.active{border-color:#FFD400;background:#3a3500}.hidden{display:none}.error{color:#ff6b6b}.success{color:#7CFF8A}.small{font-size:13px;color:#999}@media(max-width:520px){.stats{grid-template-columns:1fr}.qty{grid-template-columns:repeat(2,1fr)}}
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #111, #202020);
+  color: #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.card {
+  width: min(620px, 100%);
+  background: #181818;
+  border: 2px solid #FFD400;
+  border-radius: 22px;
+  padding: 32px;
+  box-shadow: 0 0 40px rgba(255,212,0,.16);
+}
+
+h1 {
+  margin: 0 0 8px;
+  color: #FFD400;
+}
+
+p {
+  color: #bbb;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #444;
+  background: #242424;
+  color: #fff;
+  font-size: 16px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #FFD400;
+}
+
+.btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #FFD400;
+  color: #111;
+  text-decoration: none;
+  text-align: center;
+}
+
+.btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.btn.secondary {
+  background: #333;
+  color: #fff;
+}
+
+.btn.discord {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  background: #5865F2;
+  color: white;
+}
+
+.btn.discord:hover {
+  background: #4752C4;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.box {
+  background: #222;
+  border-radius: 14px;
+  padding: 18px;
+  margin-top: 18px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.stat {
+  background: #292929;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+.stat b {
+  display: block;
+  font-size: 24px;
+  color: #FFD400;
+  margin-top: 6px;
+}
+
+.qty {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.qty button {
+  padding: 14px;
+  border: 1px solid #555;
+  background: #292929;
+  color: #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.qty button:hover,
+.qty button.active {
+  border-color: #FFD400;
+  background: #3a3500;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+.success {
+  color: #7CFF8A;
+}
+
+.small {
+  font-size: 13px;
+  color: #999;
+}
+
+@media(max-width:520px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .qty {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .card {
+    padding: 22px;
+  }
+}
 </style>
 </head>
+
 <body>
+
 <div class="card">
+
+  <!-- ACCESO CON KEY -->
   <section id="login">
     <h1>🔑 Acceso con KEY</h1>
-    <p>Introduce la KEY que te ha proporcionado el administrador.</p>
-    <input id="key" class="input" placeholder="DV-XXXXXXXXXXXXXXXXXXXXXXXX" autocomplete="off">
-    <div class="row"><button class="btn" onclick="login()">Entrar</button></div>
-    <p id="loginMsg" class="error"></p>
-  </section>
 
-  <section id="panel" class="hidden">
-    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-      <div><h1>👥 Panel de usuarios</h1><p id="keyName"></p></div>
-      <button class="btn secondary" onclick="logout()">Salir</button>
-    </div>
+    <p>
+      Introduce la KEY que te ha proporcionado el administrador.
+    </p>
 
-    <div class="stats">
-      <div class="stat">Límite<b id="limit">0</b></div>
-      <div class="stat">Usados<b id="used">0</b></div>
-      <div class="stat">Disponibles<b id="remaining">0</b></div>
-    </div>
-
-    <div class="box">
-      <strong>🎯 Servidor destino</strong>
-      <p class="small">El bot debe estar dentro del servidor.</p>
-      <input id="guildId" class="input" placeholder="ID del servidor de Discord">
-    </div>
-
-    <div class="box">
-      <strong>👥 Cantidad</strong>
-      <div id="quantities" class="qty"></div>
-    </div>
+    <input
+      id="key"
+      class="input"
+      placeholder="DV-XXXXXXXXXXXXXXXXXXXXXXXX"
+      autocomplete="off"
+    >
 
     <div class="row">
-      <button id="addBtn" class="btn" onclick="addUsers()">Añadir usuarios</button>
+      <button class="btn" id="loginBtn" type="button">
+        Entrar
+      </button>
     </div>
-    <p id="result" class="success"></p>
-    <p id="error" class="error"></p>
+
+    <p id="loginMsg" class="error" role="alert"></p>
   </section>
+
+
+  <!-- PANEL KEY -->
+  <section id="panel" class="hidden">
+
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    ">
+
+      <div>
+        <h1>👥 Panel de KEY</h1>
+        <p id="keyName"></p>
+      </div>
+
+      <button class="btn secondary" id="logoutBtn" type="button">
+        Salir
+      </button>
+
+    </div>
+
+
+    <!-- ESTADÍSTICAS -->
+    <div class="stats">
+
+      <div class="stat">
+        Límite
+        <b id="limit">—</b>
+      </div>
+
+      <div class="stat">
+        Usados
+        <b id="used">—</b>
+      </div>
+
+      <div class="stat">
+        Disponibles
+        <b id="remaining">—</b>
+      </div>
+
+    </div>
+
+
+    <!-- DISCORD OFICIAL -->
+    <div class="box">
+
+      <strong>💬 Discord oficial</strong>
+
+      <p class="small">
+        Únete a nuestro servidor oficial de Discord.
+      </p>
+
+      <a
+        class="btn discord"
+        href="https://discord.gg/hbgq48fR96"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        💬 Unirse al Discord oficial
+      </a>
+
+    </div>
+
+
+    <!-- SELECTOR DE CANTIDAD -->
+    <div class="box">
+
+      <strong>👥 Cantidad asignada a tu KEY</strong>
+
+      <p class="small">
+        Selecciona una cantidad dentro del saldo disponible.
+      </p>
+
+      <div id="quantities" class="qty"></div>
+
+      <p
+        id="selectionInfo"
+        class="small"
+        aria-live="polite"
+      >
+        Selecciona una cantidad.
+      </p>
+
+    </div>
+
+    <p id="result" class="success" role="status"></p>
+    <p id="error" class="error" role="alert"></p>
+
+  </section>
+
 </div>
+
+
 <script>
-let selectedQuantity=null;
-async function login(){
-  const key=document.getElementById('key').value.trim();
-  const msg=document.getElementById('loginMsg');msg.textContent='';
-  try{const r=await fetch('/api/keys/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key})});const d=await r.json();if(!r.ok)throw new Error(d.error||'KEY inválida');document.getElementById('login').classList.add('hidden');document.getElementById('panel').classList.remove('hidden');await loadMe();}
-  catch(e){msg.textContent=e.message}
+let selectedQuantity = null;
+
+const $ = id => document.getElementById(id);
+
+
+// PETICIONES A LA API
+async function apiJson(url, options = {}) {
+
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    ...options,
+
+    headers: {
+      ...(options.headers || {}),
+
+      ...(options.body
+        ? { 'Content-Type': 'application/json' }
+        : {})
+    }
+  });
+
+  let data = {};
+
+  try {
+    data = await response.json();
+  } catch {}
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || `Error HTTP ${response.status}`
+    );
+  }
+
+  return data;
 }
-async function loadMe(){
-  const r=await fetch('/api/keys/me');
-  if(!r.ok){document.getElementById('panel').classList.add('hidden');document.getElementById('login').classList.remove('hidden');return}
-  const d=await r.json();
-  document.getElementById('keyName').textContent='KEY: '+d.nombre;
-  document.getElementById('limit').textContent=d.limite;
-  document.getElementById('used').textContent=d.usados;
-  document.getElementById('remaining').textContent=d.restantes;
-  const box=document.getElementById('quantities');box.innerHTML='';selectedQuantity=null;
-  d.cantidades.forEach(q=>{const b=document.createElement('button');b.textContent=q+' usuarios';b.onclick=()=>{selectedQuantity=q;document.querySelectorAll('.qty button').forEach(x=>x.classList.remove('active'));b.classList.add('active')};box.appendChild(b)});
-  if(!d.cantidades.length)box.innerHTML='<span class="small">Esta KEY no tiene usuarios disponibles.</span>';
+
+
+// INICIAR SESIÓN
+async function login() {
+
+  const key = $('key').value.trim();
+
+  $('loginMsg').textContent = '';
+  $('loginBtn').disabled = true;
+
+  try {
+
+    await apiJson('/api/keys/login', {
+      method: 'POST',
+      body: JSON.stringify({ key })
+    });
+
+    await loadMe();
+
+  } catch (e) {
+
+    $('loginMsg').textContent = e.message;
+
+  } finally {
+
+    $('loginBtn').disabled = false;
+
+  }
 }
-async function addUsers(){
-  const result=document.getElementById('result'),error=document.getElementById('error');result.textContent='';error.textContent='';
-  const guildId=document.getElementById('guildId').value.trim();
-  if(!/^\d{17,20}$/.test(guildId)){error.textContent='Introduce una ID de servidor válida.';return}
-  if(!selectedQuantity){error.textContent='Selecciona una cantidad.';return}
-  const btn=document.getElementById('addBtn');btn.disabled=true;btn.textContent='Procesando...';
-  try{const r=await fetch('/api/keys/add-users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId,quantity:selectedQuantity})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Error');result.textContent=`✅ ${d.procesados} procesados en ${d.guild}. Añadidos: ${d.added}. Ya estaban: ${d.already}. Fallidos: ${d.failed}. Disponibles: ${d.restantes}.`;await loadMe();}
-  catch(e){error.textContent=e.message}
-  finally{btn.disabled=false;btn.textContent='Añadir usuarios'}
+
+
+// CREAR SELECTOR DE CANTIDADES
+function buildQuantities(remaining) {
+
+  const box = $('quantities');
+
+  box.innerHTML = '';
+  selectedQuantity = null;
+
+  $('selectionInfo').textContent =
+    'Selecciona una cantidad.';
+
+  // Opciones disponibles
+  const choices = [10, 20, 50, 100].filter(q =>
+    remaining === null || q <= remaining
+  );
+
+  if (!choices.length) {
+
+    box.innerHTML =
+      '<span class="small">Esta KEY no tiene cupo disponible.</span>';
+
+    $('selectionInfo').textContent =
+      'No hay saldo suficiente para las cantidades disponibles.';
+
+    return;
+  }
+
+  choices.forEach(quantity => {
+
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.textContent = quantity + ' usuarios';
+
+    button.addEventListener('click', () => {
+
+      selectedQuantity = quantity;
+
+      box.querySelectorAll('button').forEach(b =>
+        b.classList.remove('active')
+      );
+
+      button.classList.add('active');
+
+      $('selectionInfo').textContent =
+        `Has seleccionado ${quantity} usuarios.`;
+
+    });
+
+    box.appendChild(button);
+
+  });
 }
-async function logout(){await fetch('/api/keys/logout',{method:'POST'});location.reload()}
-loadMe().then(()=>{fetch('/api/keys/me').then(r=>{if(r.ok){document.getElementById('login').classList.add('hidden');document.getElementById('panel').classList.remove('hidden')}})});
+
+
+// CARGAR DATOS DE LA KEY
+async function loadMe() {
+
+  try {
+
+    const data = await apiJson('/api/keys/me');
+
+    // El backend devuelve los datos dentro de data.key
+    const k = data.key;
+
+    if (!k) {
+      throw new Error(
+        'La API no devolvió los datos de la KEY.'
+      );
+    }
+
+    $('keyName').textContent =
+      'KEY: ' + (k.nombre || 'Usuario');
+
+    $('limit').textContent =
+      Number(k.limite) === 0
+        ? 'Ilimitado'
+        : k.limite;
+
+    $('used').textContent = k.usados ?? 0;
+
+    $('remaining').textContent =
+      k.restantes === null
+        ? 'Ilimitado'
+        : k.restantes;
+
+    const remaining =
+      k.restantes === null
+        ? null
+        : Number(k.restantes);
+
+    buildQuantities(remaining);
+
+    $('login').classList.add('hidden');
+    $('panel').classList.remove('hidden');
+
+  } catch (e) {
+
+    $('panel').classList.add('hidden');
+    $('login').classList.remove('hidden');
+
+    if (e.message && !e.message.includes('401')) {
+      $('loginMsg').textContent = e.message;
+    }
+
+  }
+}
+
+
+// CERRAR SESIÓN
+async function logout() {
+
+  try {
+
+    await fetch('/api/keys/logout', {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
+
+  } finally {
+
+    location.reload();
+
+  }
+}
+
+
+// EVENTOS
+$('loginBtn').addEventListener('click', login);
+
+$('key').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+$('logoutBtn').addEventListener('click', logout);
+
+
+// RECUPERAR SESIÓN EXISTENTE
+loadMe();
+
 </script>
+
 </body>
 </html>
