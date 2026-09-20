@@ -930,6 +930,50 @@ async function addUserToGuild(
             .toJSON();
 
 
+    // =====================================================
+    // COMANDO /PUBLICAR
+    // =====================================================
+
+    const publicarCommand =
+        new SlashCommandBuilder()
+            .setName("publicar")
+            .setDescription("Publica un anuncio con archivo descargable.")
+            .setDefaultMemberPermissions(
+                PermissionFlagsBits.Administrator
+            )
+            .addChannelOption(option =>
+                option
+                    .setName("canal")
+                    .setDescription("Canal donde publicar el anuncio")
+                    .setRequired(true)
+            )
+            .addStringOption(option =>
+                option
+                    .setName("titulo")
+                    .setDescription("Título del anuncio")
+                    .setRequired(true)
+                    .setMaxLength(256)
+            )
+            .addStringOption(option =>
+                option
+                    .setName("descripcion")
+                    .setDescription("Descripción del anuncio")
+                    .setRequired(true)
+                    .setMaxLength(4000)
+            )
+            .addAttachmentOption(option =>
+                option
+                    .setName("banner")
+                    .setDescription("Imagen del anuncio (opcional)")
+                    .setRequired(false)
+            )
+            .addAttachmentOption(option =>
+                option
+                    .setName("archivo")
+                    .setDescription("Archivo que podrán descargar")
+                    .setRequired(true)
+            )
+            .toJSON();
     for (
 
         const guildId
@@ -980,7 +1024,32 @@ async function addUserToGuild(
                 );
 
             }
+            // =================================================
+            // REGISTRAR /PUBLICAR
+            // =================================================
 
+            const existingPublicar = commands.find(
+                cmd => cmd.name === "publicar"
+            );
+
+            if (existingPublicar) {
+
+                await existingPublicar.edit(
+                    publicarCommand
+                );
+
+            } else {
+
+                await client.application.commands.create(
+                    publicarCommand,
+                    guildId
+                );
+
+            }
+
+            console.log(
+                `✅ /publicar preparado en ${guildId}`
+            );
 
             console.log(
 
@@ -1299,6 +1368,103 @@ client.on(
 
         try {
 
+            // =================================================
+            // /PUBLICAR
+            // =================================================
+
+            if (
+                interaction.isChatInputCommand() &&
+                interaction.commandName === "publicar"
+            ) {
+
+                // Solo administradores
+                if (
+                    !interaction.memberPermissions?.has(
+                        PermissionFlagsBits.Administrator
+                    )
+                ) {
+                    return interaction.reply({
+                        content: "❌ Solo los administradores pueden usar este comando.",
+                        ephemeral: true
+                    });
+                }
+
+                const canal =
+                    interaction.options.getChannel("canal");
+
+                const titulo =
+                    interaction.options.getString("titulo");
+
+                const descripcion =
+                    interaction.options.getString("descripcion");
+
+                const banner =
+                    interaction.options.getAttachment("banner");
+
+                const archivo =
+                    interaction.options.getAttachment("archivo");
+
+                // Comprobar que sea un canal donde se pueda escribir
+                if (
+                    !canal ||
+                    !canal.isTextBased() ||
+                    typeof canal.send !== "function"
+                ) {
+                    return interaction.reply({
+                        content: "❌ Selecciona un canal de texto válido.",
+                        ephemeral: true
+                    });
+                }
+
+                // Comprobar archivo
+                if (!archivo) {
+                    return interaction.reply({
+                        content: "❌ Debes adjuntar un archivo.",
+                        ephemeral: true
+                    });
+                }
+
+                // Crear embed del anuncio
+                const embed = new EmbedBuilder()
+                    .setColor("#FFD400")
+                    .setTitle(titulo)
+                    .setDescription(descripcion)
+                    .setFooter({
+                        text: "Yellow Shop"
+                    })
+                    .setTimestamp();
+
+                // Banner opcional (solo si es una imagen)
+                if (
+                    banner &&
+                    banner.contentType?.startsWith("image/")
+                ) {
+                    embed.setImage(banner.url);
+                }
+
+                // Botón de descarga
+                const botonDescarga = new ButtonBuilder()
+                    .setLabel("📥 Descargar archivo")
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(archivo.url);
+
+                const fila = new ActionRowBuilder()
+                    .addComponents(botonDescarga);
+
+                // Publicar el anuncio
+                await canal.send({
+                    embeds: [embed],
+                    components: [fila],
+                    allowedMentions: {
+                        parse: []
+                    }
+                });
+
+                return interaction.reply({
+                    content: `✅ Anuncio publicado correctamente en ${canal}.`,
+                    ephemeral: true
+                });
+            }
 
             // =================================================
             // /ANADIRUSUARIOS
