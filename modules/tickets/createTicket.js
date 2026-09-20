@@ -69,7 +69,10 @@ module.exports = (client) => {
 
             // Obtener la categoría configurada para este tipo
             const categoriaId = config.ticketCategories?.[tipo];
-
+console.log("CONFIG:", require.resolve("./config"));
+console.log("CATEGORÍAS:", config.ticketCategories);
+console.log("TIPO SELECCIONADO:", JSON.stringify(tipo));
+console.log("ID OBTENIDA:", config.ticketCategories?.[tipo]);
             if (!categoriaId) {
                 console.error(
                     `No hay categoría configurada para "${tipo}"`
