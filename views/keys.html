@@ -1,223 +1,102 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Discord Verify • KEY</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discord Verify • Panel KEY</title>
 
 <style>
-* {
-  box-sizing: border-box;
+*{box-sizing:border-box}
+
+body{
+  margin:0;min-height:100vh;padding:20px;
+  font-family:Arial,sans-serif;
+  background:linear-gradient(135deg,#111,#202020);
+  color:#eee;display:flex;
+  align-items:center;justify-content:center
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #111, #202020);
-  color: #eee;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+.card{
+  width:min(650px,100%);background:#181818;
+  border:2px solid #FFD400;border-radius:22px;
+  padding:30px;box-shadow:0 0 40px #ffd40020
 }
 
-.card {
-  width: min(620px, 100%);
-  background: #181818;
-  border: 2px solid #FFD400;
-  border-radius: 22px;
-  padding: 32px;
-  box-shadow: 0 0 40px rgba(255,212,0,.16);
+h1{color:#FFD400;margin:0 0 8px}
+p{color:#bbb;line-height:1.45}
+
+.input{
+  width:100%;padding:14px 16px;margin-top:8px;
+  border:1px solid #444;border-radius:12px;
+  background:#242424;color:#fff;font-size:16px
 }
 
-h1 {
-  margin: 0 0 8px;
-  color: #FFD400;
+.input:focus{outline:1px solid #FFD400}
+
+.btn{
+  display:inline-block;border:0;border-radius:12px;
+  padding:14px 18px;font-weight:bold;cursor:pointer;
+  background:#FFD400;color:#111;text-align:center;
+  text-decoration:none
 }
 
-p {
-  color: #bbb;
-}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.full{width:100%;margin-top:14px}
+.btn.secondary{background:#333;color:#fff}
+.btn.discord{background:#5865F2;color:white}
+.btn.discord:hover{background:#4752C4}
 
-.input {
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid #444;
-  background: #242424;
-  color: #fff;
-  font-size: 16px;
-  outline: none;
-}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.box{background:#222;border-radius:14px;padding:18px;margin-top:18px}
 
-.input:focus {
-  border-color: #FFD400;
-}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.stat{background:#292929;border-radius:12px;padding:14px;text-align:center}
+.stat b{display:block;font-size:24px;color:#FFD400;margin-top:6px}
 
-.btn {
-  border: 0;
-  border-radius: 12px;
-  padding: 13px 18px;
-  font-weight: 700;
-  cursor: pointer;
-  background: #FFD400;
-  color: #111;
-  text-decoration: none;
-  text-align: center;
-}
+.hidden{display:none!important}
+.error{color:#ff6b6b}
+.success{color:#7CFF8A}
+.small{font-size:13px;color:#999}
 
-.btn:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-}
-
-.btn.secondary {
-  background: #333;
-  color: #fff;
-}
-
-.btn.discord {
-  display: block;
-  width: 100%;
-  margin-top: 18px;
-  background: #5865F2;
-  color: white;
-}
-
-.btn.discord:hover {
-  background: #4752C4;
-}
-
-.row {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-
-.box {
-  background: #222;
-  border-radius: 14px;
-  padding: 18px;
-  margin-top: 18px;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.stat {
-  background: #292929;
-  border-radius: 12px;
-  padding: 14px;
-  text-align: center;
-}
-
-.stat b {
-  display: block;
-  font-size: 24px;
-  color: #FFD400;
-  margin-top: 6px;
-}
-
-.qty {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.qty button {
-  padding: 14px;
-  border: 1px solid #555;
-  background: #292929;
-  color: #fff;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.qty button:hover,
-.qty button.active {
-  border-color: #FFD400;
-  background: #3a3500;
-}
-
-.hidden {
-  display: none !important;
-}
-
-.error {
-  color: #ff6b6b;
-}
-
-.success {
-  color: #7CFF8A;
-}
-
-.small {
-  font-size: 13px;
-  color: #999;
-}
-
-@media(max-width:520px) {
-  .stats {
-    grid-template-columns: 1fr;
-  }
-
-  .qty {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .card {
-    padding: 22px;
-  }
+@media(max-width:520px){
+  .stats{grid-template-columns:1fr}
+  .card{padding:22px}
 }
 </style>
 </head>
 
 <body>
+<main class="card">
 
-<div class="card">
-
-  <!-- ACCESO CON KEY -->
+  <!-- LOGIN -->
   <section id="login">
     <h1>🔑 Acceso con KEY</h1>
+    <p>Introduce la KEY que te ha proporcionado el administrador.</p>
 
-    <p>
-      Introduce la KEY que te ha proporcionado el administrador.
-    </p>
+    <input id="key" class="input"
+      placeholder="Introduce tu KEY"
+      autocomplete="off">
 
-    <input
-      id="key"
-      class="input"
-      placeholder="DV-XXXXXXXXXXXXXXXXXXXXXXXX"
-      autocomplete="off"
-    >
-
-    <div class="row">
-      <button class="btn" id="loginBtn" type="button">
-        Entrar
-      </button>
-    </div>
+    <button class="btn full" id="loginBtn" type="button">
+      Entrar
+    </button>
 
     <p id="loginMsg" class="error" role="alert"></p>
+
+    <a class="btn discord full"
+       href="https://discord.gg/hbgq48fR96"
+       target="_blank" rel="noopener noreferrer">
+      💬 Unirse al Discord oficial
+    </a>
   </section>
 
 
-  <!-- PANEL KEY -->
+  <!-- PANEL -->
   <section id="panel" class="hidden">
 
-    <div style="
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    ">
+    <div style="display:flex;justify-content:space-between;
+      gap:12px;align-items:center;flex-wrap:wrap">
 
       <div>
         <h1>👥 Panel de KEY</h1>
@@ -227,271 +106,195 @@ p {
       <button class="btn secondary" id="logoutBtn" type="button">
         Salir
       </button>
-
     </div>
 
 
     <!-- ESTADÍSTICAS -->
     <div class="stats">
+      <div class="stat">Límite<b id="limit">—</b></div>
+      <div class="stat">Usados<b id="used">—</b></div>
+      <div class="stat">Disponibles<b id="remaining">—</b></div>
+    </div>
 
-      <div class="stat">
-        Límite
-        <b id="limit">—</b>
-      </div>
 
-      <div class="stat">
-        Usados
-        <b id="used">—</b>
-      </div>
+    <!-- SERVIDOR -->
+    <div class="box">
+      <strong>🎯 Servidor de Discord</strong>
 
-      <div class="stat">
-        Disponibles
-        <b id="remaining">—</b>
-      </div>
+      <p class="small">
+        Introduce la ID del servidor en el que quieres solicitar
+        tu incorporación. El bot debe estar configurado en ese servidor.
+      </p>
 
+      <label for="guildId">ID del servidor</label>
+      <input id="guildId" class="input"
+        inputmode="numeric"
+        placeholder="Ej. 123456789012345678">
+
+      <button class="btn full" id="oauthBtn" type="button">
+        🔐 Autorizar mi cuenta y continuar
+      </button>
+
+      <p id="actionMsg" class="small" aria-live="polite"></p>
+      <p id="actionError" class="error" role="alert"></p>
     </div>
 
 
     <!-- DISCORD OFICIAL -->
     <div class="box">
-
       <strong>💬 Discord oficial</strong>
+      <p class="small">Únete a nuestro servidor oficial para recibir ayuda.</p>
 
-      <p class="small">
-        Únete a nuestro servidor oficial de Discord.
-      </p>
-
-      <a
-        class="btn discord"
-        href="https://discord.gg/hbgq48fR96"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
+      <a class="btn discord full"
+         href="https://discord.gg/hbgq48fR96"
+         target="_blank" rel="noopener noreferrer">
         💬 Unirse al Discord oficial
       </a>
-
     </div>
 
-
-    <!-- SELECTOR DE CANTIDAD -->
-    <div class="box">
-
-      <strong>👥 Cantidad asignada a tu KEY</strong>
-
-      <p class="small">
-        Selecciona una cantidad dentro del saldo disponible.
-      </p>
-
-      <div id="quantities" class="qty"></div>
-
-      <p
-        id="selectionInfo"
-        class="small"
-        aria-live="polite"
-      >
-        Selecciona una cantidad.
-      </p>
-
-    </div>
-
-    <p id="result" class="success" role="status"></p>
-    <p id="error" class="error" role="alert"></p>
+    <p class="small">
+      La autorización OAuth2 permite solicitar la incorporación
+      de la cuenta que está autorizando. Cada usuario debe dar
+      su consentimiento en Discord.
+    </p>
 
   </section>
-
-</div>
+</main>
 
 
 <script>
-let selectedQuantity = null;
-
 const $ = id => document.getElementById(id);
 
 
 // PETICIONES A LA API
 async function apiJson(url, options = {}) {
-
   const response = await fetch(url, {
     credentials: 'same-origin',
     ...options,
-
     headers: {
       ...(options.headers || {}),
-
-      ...(options.body
-        ? { 'Content-Type': 'application/json' }
-        : {})
+      ...(options.body ? {'Content-Type':'application/json'} : {})
     }
   });
 
   let data = {};
-
   try {
     data = await response.json();
   } catch {}
 
   if (!response.ok) {
-    throw new Error(
-      data.error || `Error HTTP ${response.status}`
-    );
+    throw new Error(data.error || `Error HTTP ${response.status}`);
   }
 
   return data;
 }
 
 
-// INICIAR SESIÓN
+// MOSTRAR LOGIN O PANEL
+function showPanel(show) {
+  $('login').classList.toggle('hidden', show);
+  $('panel').classList.toggle('hidden', !show);
+}
+
+
+// INICIAR SESIÓN CON KEY
 async function login() {
-
-  const key = $('key').value.trim();
-
   $('loginMsg').textContent = '';
   $('loginBtn').disabled = true;
 
   try {
-
     await apiJson('/api/keys/login', {
       method: 'POST',
-      body: JSON.stringify({ key })
+      body: JSON.stringify({
+        key: $('key').value.trim()
+      })
     });
 
     await loadMe();
 
   } catch (e) {
-
     $('loginMsg').textContent = e.message;
-
   } finally {
-
     $('loginBtn').disabled = false;
-
   }
 }
 
 
-// CREAR SELECTOR DE CANTIDADES
-function buildQuantities(remaining) {
+// CARGAR INFORMACIÓN DE LA KEY
+async function loadMe() {
+  try {
+    const data = await apiJson('/api/keys/me');
 
-  const box = $('quantities');
+    // Compatible con respuesta {key:{...}} o directamente {...}
+    const k = data.key || data;
 
-  box.innerHTML = '';
-  selectedQuantity = null;
+    $('keyName').textContent = 'KEY: ' + (k.nombre || 'Usuario');
+    $('limit').textContent =
+      Number(k.limite) === 0 ? 'Ilimitado' : (k.limite ?? '—');
 
-  $('selectionInfo').textContent =
-    'Selecciona una cantidad.';
+    $('used').textContent = k.usados ?? 0;
+    $('remaining').textContent =
+      k.restantes === null ? 'Ilimitado' : (k.restantes ?? '—');
 
-  // Opciones disponibles
-  const choices = [10, 20, 50, 100].filter(q =>
-    remaining === null || q <= remaining
-  );
+    showPanel(true);
 
-  if (!choices.length) {
+  } catch (e) {
+    showPanel(false);
+  }
+}
 
-    box.innerHTML =
-      '<span class="small">Esta KEY no tiene cupo disponible.</span>';
 
-    $('selectionInfo').textContent =
-      'No hay saldo suficiente para las cantidades disponibles.';
+// INICIAR OAUTH2
+async function startOAuth() {
+  $('actionError').textContent = '';
+  $('actionMsg').textContent = '';
 
+  const guildId = $('guildId').value.trim();
+
+  if (!/^\d{17,20}$/.test(guildId)) {
+    $('actionError').textContent =
+      'Introduce una ID de servidor válida.';
     return;
   }
 
-  choices.forEach(quantity => {
-
-    const button = document.createElement('button');
-
-    button.type = 'button';
-    button.textContent = quantity + ' usuarios';
-
-    button.addEventListener('click', () => {
-
-      selectedQuantity = quantity;
-
-      box.querySelectorAll('button').forEach(b =>
-        b.classList.remove('active')
-      );
-
-      button.classList.add('active');
-
-      $('selectionInfo').textContent =
-        `Has seleccionado ${quantity} usuarios.`;
-
-    });
-
-    box.appendChild(button);
-
-  });
-}
-
-
-// CARGAR DATOS DE LA KEY
-async function loadMe() {
+  $('oauthBtn').disabled = true;
+  $('oauthBtn').textContent = 'Preparando autorización...';
 
   try {
+    const data = await apiJson('/api/keys/start-oauth', {
+      method: 'POST',
+      body: JSON.stringify({ guildId })
+    });
 
-    const data = await apiJson('/api/keys/me');
-
-    // El backend devuelve los datos dentro de data.key
-    const k = data.key;
-
-    if (!k) {
-      throw new Error(
-        'La API no devolvió los datos de la KEY.'
-      );
+    if (!data.url) {
+      throw new Error('El servidor no devolvió el enlace OAuth2.');
     }
 
-    $('keyName').textContent =
-      'KEY: ' + (k.nombre || 'Usuario');
+    $('actionMsg').textContent =
+      'Redirigiendo a Discord para autorizar...';
 
-    $('limit').textContent =
-      Number(k.limite) === 0
-        ? 'Ilimitado'
-        : k.limite;
-
-    $('used').textContent = k.usados ?? 0;
-
-    $('remaining').textContent =
-      k.restantes === null
-        ? 'Ilimitado'
-        : k.restantes;
-
-    const remaining =
-      k.restantes === null
-        ? null
-        : Number(k.restantes);
-
-    buildQuantities(remaining);
-
-    $('login').classList.add('hidden');
-    $('panel').classList.remove('hidden');
+    // Redirige al consentimiento oficial de Discord
+    window.location.assign(data.url);
 
   } catch (e) {
-
-    $('panel').classList.add('hidden');
-    $('login').classList.remove('hidden');
-
-    if (e.message && !e.message.includes('401')) {
-      $('loginMsg').textContent = e.message;
-    }
-
+    $('actionError').textContent = e.message;
+  } finally {
+    $('oauthBtn').disabled = false;
+    $('oauthBtn').textContent =
+      '🔐 Autorizar mi cuenta y continuar';
   }
 }
 
 
 // CERRAR SESIÓN
 async function logout() {
-
   try {
-
     await fetch('/api/keys/logout', {
       method: 'POST',
       credentials: 'same-origin'
     });
-
   } finally {
-
     location.reload();
-
   }
 }
 
@@ -503,12 +306,12 @@ $('key').addEventListener('keydown', e => {
   if (e.key === 'Enter') login();
 });
 
+$('oauthBtn').addEventListener('click', startOAuth);
 $('logoutBtn').addEventListener('click', logout);
 
 
-// RECUPERAR SESIÓN EXISTENTE
+// RECUPERAR SESIÓN
 loadMe();
-
 </script>
 
 </body>
