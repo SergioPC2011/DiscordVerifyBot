@@ -1,3 +1,4 @@
+
 const {
     ChannelType,
     PermissionFlagsBits,
@@ -9,6 +10,8 @@ const {
 } = require("discord.js");
 
 const { Pool } = require("pg");
+
+// IMPORTANTE: config.js está en la raíz del proyecto
 const config = require("./config");
 
 const pool = new Pool({
@@ -42,18 +45,11 @@ module.exports = (client) => {
     client.on(Events.InteractionCreate, async interaction => {
 
         if (!interaction.isStringSelectMenu()) return;
+        if (interaction.customId !== "seleccionar_tipo_ticket") return;
 
-        if (
-            interaction.customId !==
-            "seleccionar_tipo_ticket"
-        ) return;
-
-        await interaction.deferReply({
-            ephemeral: true
-        });
+        await interaction.deferReply({ ephemeral: true });
 
         try {
-
             const tipo = interaction.values[0];
             const datos = tipos[tipo];
 
@@ -71,25 +67,48 @@ module.exports = (client) => {
                 );
             }
 
-            const categoriaId =
-                config.ticketCategories?.[tipo];
+            // Obtener la categoría configurada para este tipo
+            const categoriaId = config.ticketCategories?.[tipo];
 
-            const categoria = categoriaId
-                ? await guild.channels.fetch(categoriaId)
-                    .catch(() => null)
-                : null;
+            if (!categoriaId) {
+                console.error(
+                    `No hay categoría configurada para "${tipo}"`
+                );
 
-            if (
-                !categoria ||
-                categoria.type !== ChannelType.GuildCategory
-            ) {
                 return interaction.editReply(
-                    "❌ La categoría del ticket no existe o no está configurada."
+                    `❌ No hay una categoría configurada para ${datos.nombre}.`
                 );
             }
 
-            // Comprobar ticket abierto
+            // Obtener y validar la categoría en Discord
+            const categoria = await guild.channels
+                .fetch(categoriaId)
+                .catch(error => {
+                    console.error(
+                        `Error obteniendo categoría ${categoriaId}:`,
+                        error.message
+                    );
+                    return null;
+                });
+
+            if (
+                !categoria ||
+                categoria.type !== ChannelType.GuildCategory ||
+                categoria.guild.id !== guild.id
+            ) {
+                console.error(
+                    `Categoría inválida para ${tipo}. ID: ${categoriaId}`
+                );
+
+                return interaction.editReply(
+                    `❌ No se encuentra la categoría de ${datos.nombre}. ` +
+                    `Revisa su ID en config.js.`
+                );
+            }
+
+            // Comprobar si el usuario ya tiene un ticket abierto
             const existe = guild.channels.cache.find(c =>
+                c.type === ChannelType.GuildText &&
                 c.topic?.includes(
                     `ticket-owner:${interaction.user.id};`
                 )
@@ -101,6 +120,7 @@ module.exports = (client) => {
                 );
             }
 
+            // Permisos iniciales: usuario, Staff y Supervisor
             const permisos = [
                 {
                     id: guild.roles.everyone.id,
@@ -139,8 +159,9 @@ module.exports = (client) => {
             const nombreUsuario = interaction.user.username
                 .toLowerCase()
                 .replace(/[^a-z0-9-]/g, "")
-                .slice(0, 15);
+                .slice(0, 15) || "usuario";
 
+            // Crear el canal dentro de su categoría correspondiente
             const canal = await guild.channels.create({
                 name: `ticket-${tipo}-${nombreUsuario}`,
                 type: ChannelType.GuildText,
@@ -153,25 +174,18 @@ module.exports = (client) => {
 
             const embed = new EmbedBuilder()
                 .setColor(config.embedColor)
-                .setTitle(
-                    `${datos.emoji} Ticket ${datos.nombre}`
+                .setTitle(`${datos.emoji} Ticket ${datos.nombre}`)
+                .setDescription(
+                    `Bienvenido, <@${interaction.user.id}>.\n\n` +
+                    `Tu ticket ha sido creado correctamente.\n\n` +
+                    `**Categoría:** ${datos.nombre}\n\n` +
+                    `Un miembro del Staff podrá reclamar tu ticket.\n` +
+                    `Por favor, explica detalladamente tu consulta.\n\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                    `🔒 Este canal es privado.`
                 )
-                .setDescription(`
-Bienvenido, <@${interaction.user.id}>.
-
-Tu ticket ha sido creado correctamente.
-
-**Categoría:** ${datos.nombre}
-
-Un miembro del Staff podrá reclamar tu ticket.
-Por favor, explica detalladamente tu consulta.
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-🔒 Este canal es privado.
-`)
                 .setFooter({
-                    text: "ResellMe • Ticket System"
+                    text: config.botName
                 })
                 .setTimestamp();
 
@@ -197,6 +211,7 @@ Por favor, explica detalladamente tu consulta.
                 components: [botones]
             });
 
+            // Guardar el ticket en PostgreSQL
             await pool.query(
                 `INSERT INTO tickets
                 (channel_id, user_id, username, ticket_type)
@@ -210,11 +225,10 @@ Por favor, explica detalladamente tu consulta.
             );
 
             await interaction.editReply({
-                content: `✅ Ticket creado: ${canal}`
+                content: `✅ Tu ticket de ${datos.nombre} ha sido creado: ${canal}`
             });
 
         } catch (error) {
-
             console.error("Error creando ticket:", error);
 
             await interaction.editReply({
