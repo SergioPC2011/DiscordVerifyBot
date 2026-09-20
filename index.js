@@ -4050,6 +4050,72 @@ app.post(
 
     }
 );// =====================================================
+// INICIAR AUTORIZACIÓN OAUTH2 DESDE EL PANEL KEY
+// =====================================================
+
+app.post(
+    "/api/keys/start-oauth",
+    requireWebKey,
+    (req, res) => {
+
+        try {
+            const guildId = String(
+                req.body?.guildId || ""
+            ).trim();
+
+            if (!/^\d{17,20}$/.test(guildId)) {
+                return res.status(400).json({
+                    ok: false,
+                    error: "La ID del servidor no es válida."
+                });
+            }
+
+            // Solo servidores configurados en el bot
+            if (!verificationServers[guildId]) {
+                return res.status(400).json({
+                    ok: false,
+                    error: "Este servidor no está configurado en el bot."
+                });
+            }
+
+            if (!process.env.CLIENT_ID || !process.env.REDIRECT_URI) {
+                return res.status(500).json({
+                    ok: false,
+                    error: "Falta configurar OAuth2 en Railway."
+                });
+            }
+
+            const state = crypto.randomBytes(24).toString("hex");
+
+            oauthStates.set(state, {
+                guildId,
+                createdAt: Date.now()
+            });
+
+            const params = new URLSearchParams({
+                client_id: process.env.CLIENT_ID,
+                response_type: "code",
+                redirect_uri: process.env.REDIRECT_URI,
+                scope: "identify guilds.join",
+                state
+            });
+
+            return res.json({
+                ok: true,
+                url: `https://discord.com/oauth2/authorize?${params}`
+            });
+
+        } catch (error) {
+            console.error("Error iniciando OAuth2:", error);
+
+            return res.status(500).json({
+                ok: false,
+                error: "No se pudo iniciar la autorización."
+            });
+        }
+    }
+);
+// =====================================================
 // CALLBACK OAUTH2
 // =====================================================
 
