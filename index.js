@@ -934,17 +934,20 @@ async function addUserToGuild(
     // COMANDO /PUBLICAR
     // =====================================================
 
+    
     const publicarCommand =
         new SlashCommandBuilder()
             .setName("publicar")
-            .setDescription("Publica un anuncio con archivo descargable.")
+            .setDescription("Crea un anuncio personalizado.")
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.Administrator
             )
+
+            // CAMPOS OBLIGATORIOS
             .addChannelOption(option =>
                 option
                     .setName("canal")
-                    .setDescription("Canal donde publicar el anuncio")
+                    .setDescription("Canal donde publicar")
                     .setRequired(true)
             )
             .addStringOption(option =>
@@ -961,22 +964,30 @@ async function addUserToGuild(
                     .setRequired(true)
                     .setMaxLength(4000)
             )
-            
-            // ARCHIVO OBLIGATORIO (debe ir antes del opcional)
-            .addAttachmentOption(option =>
+            .addStringOption(option =>
                 option
-                    .setName("archivo")
-                    .setDescription("Archivo que podrán descargar")
+                    .setName("enlace")
+                    .setDescription("Enlace de descarga o página web")
                     .setRequired(true)
+                    .setMaxLength(500)
             )
 
-            // BANNER OPCIONAL (siempre después de los obligatorios)
-            .addAttachmentOption(option =>
+            // CAMPOS OPCIONALES
+            .addStringOption(option =>
                 option
-                    .setName("banner")
-                    .setDescription("Imagen del anuncio (opcional)")
+                    .setName("imagen")
+                    .setDescription("URL de la imagen del anuncio")
                     .setRequired(false)
+                    .setMaxLength(500)
             )
+            .addStringOption(option =>
+                option
+                    .setName("texto_boton")
+                    .setDescription("Texto del botón")
+                    .setRequired(false)
+                    .setMaxLength(80)
+            )
+
             .toJSON();
     for (
 
@@ -1372,18 +1383,19 @@ client.on(
 
         try {
 
+            
             // =================================================
-            // /PUBLICAR
+            // /PUBLICAR - ANUNCIO PERSONALIZADO
             // =================================================
 
             if (
                 interaction.isChatInputCommand() &&
                 interaction.commandName === "publicar"
             ) {
-
-                // Solo administradores
+                // Comprobar permisos
                 if (
-                    !interaction.memberPermissions?.has(
+                    !interaction.memberPermissions ||
+                    !interaction.memberPermissions.has(
                         PermissionFlagsBits.Administrator
                     )
                 ) {
@@ -1393,42 +1405,41 @@ client.on(
                     });
                 }
 
-                const canal =
-                    interaction.options.getChannel("canal");
+                // Recoger opciones
+                const canal = interaction.options.getChannel("canal");
+                const titulo = interaction.options.getString("titulo");
+                const descripcion = interaction.options.getString("descripcion");
+                const enlace = interaction.options.getString("enlace");
+                const imagen = interaction.options.getString("imagen");
+                const textoBoton =
+                    interaction.options.getString("texto_boton") ||
+                    "📥 Descargar / Abrir enlace";
 
-                const titulo =
-                    interaction.options.getString("titulo");
+                // Validar enlace
+                if (!enlace || !/^https?:\/\/\S+$/i.test(enlace)) {
+                    return interaction.reply({
+                        content: "❌ Introduce un enlace válido que empiece por https:// o http://",
+                        ephemeral: true
+                    });
+                }
 
-                const descripcion =
-                    interaction.options.getString("descripcion");
+                // Validar imagen opcional
+                if (imagen && !/^https?:\/\/\S+$/i.test(imagen)) {
+                    return interaction.reply({
+                        content: "❌ La URL de la imagen no es válida.",
+                        ephemeral: true
+                    });
+                }
 
-                const banner =
-                    interaction.options.getAttachment("banner");
-
-                const archivo =
-                    interaction.options.getAttachment("archivo");
-
-                // Comprobar que sea un canal donde se pueda escribir
-                if (
-                    !canal ||
-                    !canal.isTextBased() ||
-                    typeof canal.send !== "function"
-                ) {
+                // Validar canal
+                if (!canal || !canal.isTextBased() || !canal.send) {
                     return interaction.reply({
                         content: "❌ Selecciona un canal de texto válido.",
                         ephemeral: true
                     });
                 }
 
-                // Comprobar archivo
-                if (!archivo) {
-                    return interaction.reply({
-                        content: "❌ Debes adjuntar un archivo.",
-                        ephemeral: true
-                    });
-                }
-
-                // Crear embed del anuncio
+                // Crear anuncio
                 const embed = new EmbedBuilder()
                     .setColor("#FFD400")
                     .setTitle(titulo)
@@ -1438,24 +1449,21 @@ client.on(
                     })
                     .setTimestamp();
 
-                // Banner opcional (solo si es una imagen)
-                if (
-                    banner &&
-                    banner.contentType?.startsWith("image/")
-                ) {
-                    embed.setImage(banner.url);
+                // Añadir imagen si se ha indicado
+                if (imagen) {
+                    embed.setImage(imagen);
                 }
 
-                // Botón de descarga
-                const botonDescarga = new ButtonBuilder()
-                    .setLabel("📥 Descargar archivo")
+                // Crear botón de enlace
+                const boton = new ButtonBuilder()
+                    .setLabel(textoBoton)
                     .setStyle(ButtonStyle.Link)
-                    .setURL(archivo.url);
+                    .setURL(enlace);
 
                 const fila = new ActionRowBuilder()
-                    .addComponents(botonDescarga);
+                    .addComponents(boton);
 
-                // Publicar el anuncio
+                // Enviar anuncio al canal elegido
                 await canal.send({
                     embeds: [embed],
                     components: [fila],
@@ -1464,6 +1472,7 @@ client.on(
                     }
                 });
 
+                // Confirmar al administrador
                 return interaction.reply({
                     content: `✅ Anuncio publicado correctamente en ${canal}.`,
                     ephemeral: true
