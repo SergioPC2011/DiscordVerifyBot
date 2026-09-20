@@ -909,7 +909,274 @@ async function addUserToGuild(
 // REGISTRAR COMANDO /ANADIRUSUARIOS
 // =====================================================
 
+// =====================================================
+// REGISTRAR COMANDOS /ANADIRUSUARIOS Y /PUBLICAR
+// =====================================================
+// =================================================
+// /PUBLICAR
+// =================================================
+
+if (
+    interaction.isChatInputCommand() &&
+    interaction.commandName === "publicar"
+) {
+
+    // Solo administradores
+
+    if (
+        !interaction.memberPermissions?.has(
+            PermissionFlagsBits.Administrator
+        )
+    ) {
+
+        return interaction.reply({
+            content: "❌ Solo los administradores pueden publicar.",
+            ephemeral: true
+        });
+
+    }
+
+    await interaction.deferReply({
+        ephemeral: true
+    });
+
+    try {
+
+        // -----------------------------------------
+        // OBTENER OPCIONES
+        // -----------------------------------------
+
+        const canalDestino =
+            interaction.options.getChannel("canal");
+
+        const titulo =
+            interaction.options.getString("titulo");
+
+        const descripcion =
+            interaction.options.getString("descripcion");
+
+        const banner =
+            interaction.options.getAttachment("banner");
+
+        const archivo =
+            interaction.options.getAttachment("archivo");
+
+
+        // -----------------------------------------
+        // VALIDAR CANAL
+        // -----------------------------------------
+
+        if (
+            !canalDestino ||
+            !canalDestino.isTextBased() ||
+            canalDestino.guildId !== interaction.guildId
+        ) {
+
+            return interaction.editReply(
+                "❌ Selecciona un canal de texto válido de este servidor."
+            );
+
+        }
+
+
+        // -----------------------------------------
+        // CREAR EMBED
+        // -----------------------------------------
+
+        const embed = new EmbedBuilder()
+            .setColor("#FFD400")
+            .setTitle(titulo)
+            .setDescription(descripcion)
+            .setFooter({
+                text: "Yellow Shop | Ticket System"
+            })
+            .setTimestamp();
+
+
+        // Añadir banner si se ha seleccionado
+
+        if (banner) {
+            embed.setImage(banner.url);
+        }
+
+
+        // -----------------------------------------
+        // BOTÓN DE DESCARGA
+        // -----------------------------------------
+
+        const botonDescarga = new ActionRowBuilder()
+            .addComponents(
+
+                new ButtonBuilder()
+                    .setLabel("Descargar archivo")
+                    .setEmoji("📥")
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(archivo.url)
+
+            );
+
+
+        // -----------------------------------------
+        // PUBLICAR MENSAJE
+        // -----------------------------------------
+
+        await canalDestino.send({
+
+            embeds: [embed],
+
+            // Adjuntar el archivo a la publicación
+            files: [
+                {
+                    attachment: archivo.url,
+                    name: archivo.name
+                }
+            ],
+
+            // Botón que lleva al archivo
+            components: [botonDescarga]
+
+        });
+
+
+        // -----------------------------------------
+        // CONFIRMAR
+        // -----------------------------------------
+
+        return interaction.editReply(
+            `✅ Publicación enviada correctamente a ${canalDestino}.`
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "❌ Error ejecutando /publicar:",
+            error
+        );
+
+        return interaction.editReply(
+            "❌ No se pudo publicar. Revisa los permisos del bot y el archivo."
+        ).catch(() => {});
+
+    }
+
+}
 async function registerMassJoinCommand() {
+
+    const comandos = [
+
+        // -----------------------------------------
+        // /ANADIRUSUARIOS
+        // -----------------------------------------
+
+        new SlashCommandBuilder()
+            .setName("anadirusuarios")
+            .setDescription(
+                "Añade usuarios verificados de PostgreSQL al servidor."
+            )
+            .setDefaultMemberPermissions(
+                PermissionFlagsBits.Administrator
+            ),
+
+        // -----------------------------------------
+        // /PUBLICAR
+        // -----------------------------------------
+
+        new SlashCommandBuilder()
+            .setName("publicar")
+            .setDescription(
+                "Publica un banner y un archivo descargable."
+            )
+            .setDefaultMemberPermissions(
+                PermissionFlagsBits.Administrator
+            )
+
+            .addChannelOption(option =>
+                option
+                    .setName("canal")
+                    .setDescription("Canal donde publicar")
+                    .setRequired(true)
+            )
+
+            .addStringOption(option =>
+                option
+                    .setName("titulo")
+                    .setDescription("Título de la publicación")
+                    .setRequired(true)
+            )
+
+            .addStringOption(option =>
+                option
+                    .setName("descripcion")
+                    .setDescription("Descripción de la publicación")
+                    .setRequired(true)
+            )
+
+            .addAttachmentOption(option =>
+                option
+                    .setName("banner")
+                    .setDescription("Imagen del banner (opcional)")
+                    .setRequired(false)
+            )
+
+            .addAttachmentOption(option =>
+                option
+                    .setName("archivo")
+                    .setDescription("Archivo que podrán descargar")
+                    .setRequired(true)
+            )
+
+    ].map(comando => comando.toJSON());
+
+
+    // Registrar comandos en los servidores configurados
+
+    for (const guildId of Object.keys(verificationServers)) {
+
+        try {
+
+            const registrados =
+                await client.application.commands.fetch({
+                    guildId
+                });
+
+            for (const comando of comandos) {
+
+                const existente = registrados.find(
+                    cmd => cmd.name === comando.name
+                );
+
+                if (existente) {
+
+                    await existente.edit(comando);
+
+                } else {
+
+                    await client.application.commands.create(
+                        comando,
+                        guildId
+                    );
+
+                }
+
+            }
+
+            console.log(
+                `✅ Comandos registrados en ${guildId}`
+            );
+
+        } catch (error) {
+
+            console.error(
+                `❌ Error registrando comandos en ${guildId}:`,
+                error
+            );
+
+        }
+
+    }
+
+} {
 
     const command =
 
